@@ -1,0 +1,1038 @@
+import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import styled from 'styled-components'
+import { ArrowRight, Mail, RefreshCw } from 'lucide-react'
+import ProductCard from '../components/product/ProductCard'
+import { productAPI, contactAPI } from '../services/api'
+import { Product } from '../utils/productHelpers'
+import { loadMediaManifest } from '../utils/mediaManifest'
+
+// Re-export Product interface to match usage in this file
+type ProductType = Product
+
+// Import local videos (Vite will return URLs for these assets)
+import fashionVideo1 from '../images/fashionvideo1.mp4'
+import fashionVideo2 from '../images/fashionvideo2.mp4'
+
+// LazyVideo component for efficient video loading and playback
+interface LazyVideoProps {
+  src: string;
+  className?: string;
+  onError?: () => void;
+}
+
+const LazyVideo: React.FC<LazyVideoProps> = ({ src, className, onError }) => {
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let observer: IntersectionObserver | null = null;
+    
+    try {
+      // Use a slightly lower threshold so small thumbnails trigger play
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!video) return;
+
+          if (entry.isIntersecting) {
+            video.play().catch(error => {
+              console.warn('Video autoplay failed:', error);
+            });
+          } else {
+            video.pause();
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      observer.observe(video);
+    } catch (error) {
+      console.warn('IntersectionObserver failed:', error);
+    }
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      className={className}
+      src={src}
+      playsInline
+      muted
+      loop
+      preload="metadata"
+      onError={onError}
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+};
+
+// HeroSlideshow component that cycles between video and images - FIXED VERSION
+interface HeroSlideshowProps {
+  className?: string;
+}
+
+const HeroSlideshow: React.FC<HeroSlideshowProps> = ({ className }) => {
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const mediaRef = React.useRef<HTMLVideoElement | HTMLImageElement>(null);
+
+  // CORRECTED: Use only hero-specific media items
+  const heroMediaItems = [
+    fashionVideo2, // This is your hero video
+    'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg',
+    'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top_onrpuu.jpg'
+  ];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % heroMediaItems.length);
+    }, 5000); // Change every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  React.useEffect(() => {
+    const currentMedia = heroMediaItems[currentIndex];
+    const isVideo = typeof currentMedia === 'string' && /\.(mp4|webm|ogg)$/i.test(currentMedia);
+
+    if (isVideo && mediaRef.current) {
+      (mediaRef.current as HTMLVideoElement).play().catch(error => {
+        console.log('Video autoplay blocked by browser');
+      });
+    }
+  }, [currentIndex]);
+
+  const currentMedia = heroMediaItems[currentIndex];
+  const isVideo = typeof currentMedia === 'string' && /\.(mp4|webm|ogg)$/i.test(currentMedia);
+
+  return isVideo ? (
+    <video
+      ref={mediaRef as React.RefObject<HTMLVideoElement>}
+      className={className}
+      src={currentMedia}
+      playsInline
+      muted
+      loop
+      preload="auto"
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  ) : (
+    <img
+      ref={mediaRef as React.RefObject<HTMLImageElement>}
+      className={className}
+      src={currentMedia}
+      alt="hero"
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+};
+
+// RunwaySlideshow component for the Runway & Lookbook section - UPDATED FOR CLARITY
+interface RunwaySlideshowProps {
+  className?: string;
+}
+
+const RunwaySlideshow: React.FC<RunwaySlideshowProps> = ({ className }) => {
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const mediaRef = React.useRef<HTMLVideoElement | HTMLImageElement>(null);
+
+  // EXPLICITLY define runway-only media items
+  const runwayMediaItems = [
+    fashionVideo1, // This is your runway video (different from hero)
+    'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece_lydbu8.jpg',
+    'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece2_ekz4s7.jpg',
+    'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece3_ii4cvw.jpg'
+  ];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % runwayMediaItems.length);
+    }, 4000); // Change every 4 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  React.useEffect(() => {
+    const currentMedia = runwayMediaItems[currentIndex];
+    const isVideo = typeof currentMedia === 'string' && /\.(mp4|webm|ogg)$/i.test(currentMedia);
+
+    if (isVideo && mediaRef.current) {
+      (mediaRef.current as HTMLVideoElement).play().catch(error => {
+        console.log('Runway video autoplay blocked by browser');
+      });
+    }
+  }, [currentIndex]);
+
+  const currentMedia = runwayMediaItems[currentIndex];
+  const isVideo = typeof currentMedia === 'string' && /\.(mp4|webm|ogg)$/i.test(currentMedia);
+
+  return isVideo ? (
+    <video
+      ref={mediaRef as React.RefObject<HTMLVideoElement>}
+      className={className}
+      src={currentMedia}
+      playsInline
+      muted
+      loop
+      preload="auto"
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  ) : (
+    <img
+      ref={mediaRef as React.RefObject<HTMLImageElement>}
+      className={className}
+      src={currentMedia}
+      alt="runway"
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+};
+
+// VideoWithFallback: tries to render a lazy-playing video, falls back to an image when video fails
+const VideoWithFallback: React.FC<{ 
+  src?: string; 
+  fallbackImage?: string; 
+  className?: string; 
+  style?: React.CSSProperties;
+  onError?: () => void;
+  onLoad?: () => void;
+}> = ({ src, fallbackImage, className, style, onError, onLoad }) => {
+  const [videoFailed, setVideoFailed] = React.useState(false)
+
+  if (!src || videoFailed) {
+    return fallbackImage ? <MediaImage src={fallbackImage} alt="fallback" style={style} /> : null
+  }
+
+  return (
+    <LazyVideo 
+      src={src} 
+      className={className}
+      onError={() => {
+        console.error('Video failed to load:', src);
+        setVideoFailed(true);
+        onError?.();
+      }}
+    />
+  )
+}
+
+const HomeContainer = styled.div`
+  width: 100%;
+`
+
+// Hero Section
+const HeroSection = styled.section`
+  position: relative;
+  height: 80vh;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  
+  @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
+    height: 90vh;
+    min-height: 600px;
+  }
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    height: 60vh;
+    min-height: 320px;
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('/hero-pattern.svg') center/cover no-repeat;
+    opacity: 0.05;
+    z-index: 1;
+  }
+`
+
+const HeroContent = styled.div`
+  max-width: 800px;
+  z-index: 2;
+  padding: 0 ${({ theme }) => theme.spacing.lg};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: 0 ${({ theme }) => theme.spacing.md};
+  }
+`
+
+const HeroMedia = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  overflow: hidden;
+
+  video, img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+`
+
+const HeroTitle = styled.h1`
+  font-family: ${({ theme }) => theme.fonts.secondary};
+  font-size: ${({ theme }) => theme.fontSizes['5xl']};
+  color: ${({ theme }) => theme.colors.black};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  letter-spacing: -1px;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSizes['4xl']};
+  }
+`
+
+const HeroTagline = styled.h2`
+  font-size: ${({ theme }) => theme.fontSizes['2xl']};
+  color: ${({ theme }) => theme.colors.primary};
+  font-weight: ${({ theme }) => theme.fontWeights.light};
+  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+  font-style: italic;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSizes.xl};
+  }
+`
+
+const HeroSubtitle = styled.p`
+  font-size: ${({ theme }) => theme.fontSizes.lg};
+  color: ${({ theme }) => theme.colors.darkGray};
+  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+  line-height: ${({ theme }) => theme.lineHeights.relaxed};
+`
+
+const CTAButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  background: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.white};
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing['2xl']};
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  font-weight: ${({ theme }) => theme.fontWeights.bold};
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: ${({ theme }) => theme.transitions.normal};
+  min-width: 200px;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSizes.sm};
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.xl};
+    min-width: auto; /* avoid overflow on small screens */
+    width: auto;
+  }
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+    transform: translateY(-3px);
+    box-shadow: ${({ theme }) => theme.shadows.lg};
+  }
+  
+  &:active {
+    transform: translateY(-1px);
+  }
+`
+
+// Featured Categories Section
+const FeaturedSection = styled.section`
+  padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing['2xl']} ${({ theme }) => theme.spacing.md};
+  }
+`
+
+const SectionTitle = styled.h2`
+  font-family: ${({ theme }) => theme.fonts.secondary};
+  font-size: ${({ theme }) => theme.fontSizes['3xl']};
+  color: ${({ theme }) => theme.colors.black};
+  text-align: center;
+  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+`
+
+const CategoriesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: ${({ theme }) => theme.spacing.xl};
+  margin-bottom: ${({ theme }) => theme.spacing['3xl']};
+`
+
+const CategoryCard = styled(Link)`
+  position: relative;
+  height: 400px;
+  background: ${({ theme }) => theme.colors.accent};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  overflow: hidden;
+  text-decoration: none;
+  transition: ${({ theme }) => theme.transitions.normal};
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: ${({ theme }) => theme.shadows.xl};
+  }
+`
+
+// Media helper: tries video sources first, then images; hides failing sources
+const MediaWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: ${({ theme }) => theme.colors.lightGray};
+`;
+
+const MediaImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
+
+const MediaVideo = styled.video`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
+
+const VideoSection = styled.section`
+  padding: ${({ theme }) => theme.spacing['3xl']} ${({ theme }) => theme.spacing.lg};
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${({ theme }) => theme.spacing.lg};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: 1fr;
+    padding: ${({ theme }) => theme.spacing['2xl']} ${({ theme }) => theme.spacing.md};
+  }
+`;
+
+const CategoryOverlay = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+  padding: ${({ theme }) => theme.spacing['2xl']};
+  color: ${({ theme }) => theme.colors.white};
+`
+
+const CategoryTitle = styled.h3`
+  font-size: ${({ theme }) => theme.fontSizes['2xl']};
+  font-weight: ${({ theme }) => theme.fontWeights.bold};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+`
+
+// Featured Products Grid
+const ProductsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: ${({ theme }) => theme.spacing.xl};
+  margin-bottom: ${({ theme }) => theme.spacing['3xl']};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+`
+
+// Loading and Error States
+const LoadingState = styled.div`
+  text-align: center;
+  padding: ${({ theme }) => theme.spacing['4xl']};
+  color: ${({ theme }) => theme.colors.darkGray};
+`
+
+const ErrorState = styled.div`
+  text-align: center;
+  padding: ${({ theme }) => theme.spacing.xl};
+  color: ${({ theme }) => theme.colors.error};
+  background: ${({ theme }) => theme.colors.errorLight};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  margin: ${({ theme }) => theme.spacing.xl} 0;
+`
+
+const RetryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  background: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.white};
+  border: none;
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.xl};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  cursor: pointer;
+  margin-top: ${({ theme }) => theme.spacing.md};
+  transition: ${({ theme }) => theme.transitions.fast};
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+  }
+`
+
+// Brand Story Section
+const StorySection = styled.section`
+  background: ${({ theme }) => theme.colors.cream};
+  padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing['2xl']} ${({ theme }) => theme.spacing.md};
+  }
+`
+
+const StoryContainer = styled.div`
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+`
+
+const StoryText = styled.p`
+  font-size: ${({ theme }) => theme.fontSizes.lg};
+  color: ${({ theme }) => theme.colors.darkGray};
+  line-height: ${({ theme }) => theme.lineHeights.relaxed};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+`
+
+// Newsletter Section
+const NewsletterSection = styled.section`
+  padding: ${({ theme }) => theme.spacing['3xl']} ${({ theme }) => theme.spacing.lg};
+  background: ${({ theme }) => theme.colors.white};
+`
+
+const NewsletterContainer = styled.div`
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+`
+
+const NewsletterForm = styled.form`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.xl};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: column;
+  }
+`
+
+const EmailInput = styled.input`
+  flex: 1;
+  padding: ${({ theme }) => theme.spacing.lg};
+  border: 2px solid ${({ theme }) => theme.colors.lightGray};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`
+
+const SubmitButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  background: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.white};
+  border: none;
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  cursor: pointer;
+  transition: ${({ theme }) => theme.transitions.fast};
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+  }
+  
+  &:disabled {
+    background: ${({ theme }) => theme.colors.lightGray};
+    cursor: not-allowed;
+  }
+`
+
+// Message States
+const SuccessMessage = styled.div`
+  color: ${({ theme }) => theme.colors.success};
+  background: ${({ theme }) => theme.colors.successLight};
+  padding: ${({ theme }) => theme.spacing.md};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  margin-top: ${({ theme }) => theme.spacing.md};
+`
+
+const ErrorMessage = styled.div`
+  color: ${({ theme }) => theme.colors.error};
+  background: ${({ theme }) => theme.colors.errorLight};
+  padding: ${({ theme }) => theme.spacing.md};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  margin-top: ${({ theme }) => theme.spacing.md};
+`
+
+// Mock fallback data with proper Product structure
+const mockFeaturedProducts: Product[] = [
+  {
+    _id: '1',
+    name: 'Satin Slip Dress',
+    price: 89.99,
+    originalPrice: 119.99,
+    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg'],
+    colors: ['Black', 'Pink', 'White'],
+    sizes: ['XS', 'S', 'M', 'L'],
+    rating: 4.8,
+    reviewCount: 124,
+    isNew: true,
+    category: 'Dresses',
+    description: 'Elegant satin slip dress for special occasions',
+    slug: 'satin-slip-dress',
+    inStock: true,
+    featured: true,
+    tags: ['dress', 'satin', 'elegant']
+  },
+  {
+    _id: '2',
+    name: 'Lace Bodysuit',
+    price: 59.99,
+    originalPrice: undefined,
+    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501863/erica-spanks/undefined/Lounge_apskzs.jpg'],
+    colors: ['Black', 'Nude'],
+    sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    rating: 4.9,
+    reviewCount: 89,
+    isNew: false,
+    isSale: false,
+    category: 'Bodysuits',
+    description: 'Comfortable lace bodysuit for everyday wear',
+    slug: 'lace-bodysuit',
+    inStock: true,
+    featured: true,
+    tags: ['bodysuit', 'lace', 'comfortable']
+  },
+  {
+    _id: '3',
+    name: 'Ribbed Mini Dress',
+    price: 75.00,
+    originalPrice: 95.00,
+    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501834/erica-spanks/undefined/Dress2_abmlyn.jpg'],
+    colors: ['Camel', 'Black', 'White'],
+    sizes: ['XS', 'S', 'M', 'L'],
+    rating: 4.7,
+    reviewCount: 67,
+    isNew: false,
+    isSale: true,
+    category: 'Dresses',
+    description: 'Stylish ribbed mini dress for casual outings',
+    slug: 'ribbed-mini-dress',
+    inStock: true,
+    featured: true,
+    tags: ['dress', 'ribbed', 'casual']
+  },
+  {
+    _id: '4',
+    name: 'Seamless Bralette',
+    price: 29.99,
+    originalPrice: undefined,
+    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top_onrpuu.jpg'],
+    colors: ['Nude', 'Black', 'White', 'Pink'],
+    sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    rating: 4.6,
+    reviewCount: 203,
+    isNew: false,
+    isSale: false,
+    category: 'Intimates',
+    description: 'Seamless bralette for ultimate comfort',
+    slug: 'seamless-bralette',
+    inStock: true,
+    featured: true,
+    tags: ['bralette', 'seamless', 'comfort']
+  }
+]
+
+const Home: React.FC = () => {
+  const [email, setEmail] = useState('')
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [newsletterLoading, setNewsletterLoading] = useState(false)
+  const [newsletterMessage, setNewsletterMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Helper function to transform API data to Product structure
+  const transformProductData = (data: any): Product => {
+    return {
+      _id: data._id || data.id || '',
+      name: data.name || 'Unnamed Product',
+      price: Number(data.price) || 0,
+      originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
+      images: Array.isArray(data.images) ? data.images : [data.image || 'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg'],
+      colors: Array.isArray(data.colors) ? data.colors : [],
+      sizes: Array.isArray(data.sizes) ? data.sizes : [],
+      rating: Number(data.rating) || 0,
+      reviewCount: Number(data.reviewCount) || 0,
+      isNew: Boolean(data.isNew),
+      isSale: Boolean(data.isSale),
+      category: data.category || 'Uncategorized',
+      description: data.description || '',
+      slug: data.slug || data._id || data.id || '',
+      inStock: data.inStock !== undefined ? Boolean(data.inStock) : true,
+      featured: Boolean(data.featured),
+      tags: Array.isArray(data.tags) ? data.tags : [],
+    }
+  }
+
+  // Load featured products from API
+  const loadFeaturedProducts = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      console.log('Loading featured products...')
+      
+      let response;
+      let productsData: any[] = []
+
+      try {
+        // First try the featured products endpoint
+        response = await productAPI.getFeaturedProducts()
+        console.log('Featured products API response:', response)
+        
+        // Handle different response structures
+        if (response && Array.isArray(response)) {
+          productsData = response
+        } else if (response && response.data && Array.isArray(response.data)) {
+          productsData = response.data
+        } else if (response && response.products && Array.isArray(response.products)) {
+          productsData = response.products
+        }
+      } catch (featuredError) {
+        console.warn('Featured products endpoint failed, trying regular products...', featuredError)
+        
+        // Fallback to regular products with limit
+        try {
+          response = await productAPI.getProducts({ limit: 4, featured: true })
+          
+          if (response && Array.isArray(response)) {
+            productsData = response
+          } else if (response && response.data && Array.isArray(response.data)) {
+            productsData = response.data
+          } else if (response && response.products && Array.isArray(response.products)) {
+            productsData = response.products
+          }
+        } catch (productsError) {
+          console.warn('Regular products endpoint also failed, using mock data...', productsError)
+          throw new Error('All API endpoints failed')
+        }
+      }
+
+      // Transform and set products
+      if (productsData.length > 0) {
+        const transformedProducts = productsData.map(transformProductData)
+        setFeaturedProducts(transformedProducts)
+        console.log('Successfully loaded products:', transformedProducts.length)
+      } else {
+        console.warn('No products found in API response, using mock data')
+        setFeaturedProducts(mockFeaturedProducts)
+      }
+
+    } catch (err) {
+      console.error('Error loading featured products:', err)
+      setError('Unable to load featured products at the moment. Showing sample products instead.')
+      setFeaturedProducts(mockFeaturedProducts)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const [featuredCategories, setFeaturedCategories] = useState(() => ([
+    {
+      title: 'New Arrivals',
+      description: 'Fresh styles that define confidence',
+      link: '/products?sort=newest&category=all',
+      mediaCandidates: [
+        fashionVideo2,
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Lounge3_ozyyqs.jpg',
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg'
+      ],
+      slug: 'dresses'
+    },
+    {
+      title: 'Best Sellers',
+      description: 'Customer favorites that never disappoint',
+      link: '/products?sort=popular&category=all',
+      mediaCandidates: [
+        fashionVideo2,
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top2_hserim.jpg',
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top_onrpuu.jpg'
+      ],
+      slug: 'tops'
+    },
+    {
+      title: 'Collections',
+      description: 'Curated looks for every occasion',
+      link: '/products?category=all',
+      mediaCandidates: [
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece_lydbu8.jpg',
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece2_ekz4s7.jpg',
+        'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece3_ii4cvw.jpg'
+      ],
+      slug: 'two-piece-sets'
+    }
+  ]))
+
+  useEffect(() => {
+    // Load manifest in parallel with products. If manifest has entries for known slugs
+    // replace mediaCandidates with manifest items (prioritize manifest).
+    (async () => {
+      try {
+        const manifest = await loadMediaManifest()
+        if (manifest && Object.keys(manifest).length > 0) {
+          const updated = featuredCategories.map((cat) => {
+            const media = manifest[cat.slug] || manifest[cat.slug?.toLowerCase()] || []
+            return { ...cat, mediaCandidates: (media.length > 0 ? media : cat.mediaCandidates) }
+          })
+          setFeaturedCategories(updated)
+        }
+      } catch (e) {
+        // ignore manifest errors and fall back to defaults
+      }
+    })()
+
+    loadFeaturedProducts()
+  }, [])
+  
+  // featuredCategories is managed via state above; no duplicate constant here
+  
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!email.trim()) {
+      setNewsletterMessage({ type: 'error', text: 'Please enter a valid email address' })
+      return
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setNewsletterMessage({ type: 'error', text: 'Please enter a valid email address' })
+      return
+    }
+
+    setNewsletterLoading(true)
+    setNewsletterMessage(null)
+
+    try {
+      await contactAPI.subscribeNewsletter(email)
+      setNewsletterMessage({ type: 'success', text: 'Thank you for subscribing to our newsletter!' })
+      setEmail('')
+    } catch (error) {
+      console.error('Newsletter subscription error:', error)
+      setNewsletterMessage({ 
+        type: 'error', 
+        text: 'Failed to subscribe. Please try again later.' 
+      })
+    } finally {
+      setNewsletterLoading(false)
+    }
+  }
+
+  const displayedProducts = featuredProducts.length > 0 ? featuredProducts : mockFeaturedProducts
+
+  return (
+    <HomeContainer>
+      <HeroSection>
+        <HeroMedia>
+          <HeroSlideshow />
+        </HeroMedia>
+        <HeroContent>
+          <HeroTitle>ERICA SPANKS</HeroTitle>
+          <HeroTagline>"Comfort that turns heads."</HeroTagline>
+          <HeroSubtitle>
+            Discover fashion that celebrates your confidence, embraces your comfort,
+            and makes every moment feel extraordinary.
+          </HeroSubtitle>
+          <CTAButton to="/products">
+            Shop Collection <ArrowRight size={18} />
+          </CTAButton>
+        </HeroContent>
+      </HeroSection>
+      
+      <FeaturedSection>
+        <SectionTitle>Featured Collections</SectionTitle>
+        <CategoriesGrid>
+          {featuredCategories.map((category, index) => (
+            <CategoryCard key={index} to={category.link}>
+              {/* Render only the top-priority media candidate (prefer video), avoid stacking multiple media elements */}
+              <MediaWrapper>
+                {(() => {
+                  const candidate = category.mediaCandidates && category.mediaCandidates.length > 0 ? category.mediaCandidates[0] : undefined
+                  if (!candidate) return null
+                  const isVideo = typeof candidate === 'string' && /\.(mp4|webm|ogg)$/i.test(candidate)
+                  // prefer a non-video fallback image if available
+                  const fallback = (category.mediaCandidates && category.mediaCandidates.length > 1 && typeof category.mediaCandidates[1] === 'string' && !/\.(mp4|webm|ogg)$/i.test(category.mediaCandidates[1])) ? category.mediaCandidates[1] as string : 'https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg'
+
+                  return isVideo ? (
+                    <VideoWithFallback key={index} src={candidate as string} fallbackImage={fallback} className={"category-video"} />
+                  ) : (
+                    <MediaImage key={index} src={candidate as string} alt={category.title} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                  )
+                })()}
+              </MediaWrapper>
+              <CategoryOverlay>
+                <CategoryTitle>{category.title}</CategoryTitle>
+                <p>{category.description}</p>
+              </CategoryOverlay>
+            </CategoryCard>
+          ))}
+        </CategoriesGrid>
+      </FeaturedSection>
+      
+      {/* Video Showcase Section */}
+      <VideoSection>
+        <div>
+          <SectionTitle>Runway & Lookbook</SectionTitle>
+          <p style={{ color: '#666', marginBottom: '1rem' }}>
+            Curated videos and images from our latest collections.
+          </p>
+          <MediaWrapper style={{ height: '320px', borderRadius: '12px', overflow: 'hidden' }}>
+            <RunwaySlideshow />
+          </MediaWrapper>
+        </div>
+      </VideoSection>
+      
+      {/* Featured Products Section */}
+      <FeaturedSection>
+        <SectionTitle>Featured Products</SectionTitle>
+        
+        {loading && (
+          <LoadingState>
+            <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+            <div>Loading featured products...</div>
+          </LoadingState>
+        )}
+        
+        {error && (
+          <ErrorState>
+            {error}
+            <br />
+            <RetryButton onClick={loadFeaturedProducts}>
+              <RefreshCw size={16} />
+              Try Again
+            </RetryButton>
+          </ErrorState>
+        )}
+        
+        {!loading && displayedProducts.length > 0 && (
+          <>
+            <ProductsGrid>
+              {displayedProducts.slice(0, 4).map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  variant="default"
+                />
+              ))}
+            </ProductsGrid>
+            <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+              <CTAButton to="/products">
+                View All Products <ArrowRight size={18} />
+              </CTAButton>
+            </div>
+          </>
+        )}
+        
+        {!loading && displayedProducts.length === 0 && (
+          <ErrorState>
+            No featured products available at the moment.
+            <br />
+            <RetryButton onClick={loadFeaturedProducts}>
+              <RefreshCw size={16} />
+              Try Again
+            </RetryButton>
+          </ErrorState>
+        )}
+      </FeaturedSection>
+      
+      <StorySection>
+        <StoryContainer>
+          <SectionTitle>Our Story</SectionTitle>
+          <StoryText>
+            Erica Spanks was born from a simple belief: every woman deserves to feel 
+            confident, comfortable, and unstoppable in what she wears. We create pieces 
+            that celebrate your unique beauty while ensuring you feel amazing all day long.
+          </StoryText>
+          <StoryText>
+            From our carefully selected fabrics to our attention to fit, every detail 
+            is designed with you in mind.
+          </StoryText>
+          <CTAButton to="/about">
+            Learn More <ArrowRight size={18} />
+          </CTAButton>
+        </StoryContainer>
+      </StorySection>
+      
+      <NewsletterSection>
+        <NewsletterContainer>
+          <SectionTitle>Stay in Touch</SectionTitle>
+          <StoryText>
+            Be the first to know about new arrivals, exclusive offers, and style tips 
+            straight from our team.
+          </StoryText>
+          <NewsletterForm onSubmit={handleNewsletterSubmit}>
+            <EmailInput
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={newsletterLoading}
+            />
+            <SubmitButton type="submit" disabled={newsletterLoading}>
+              <Mail size={18} />
+              {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
+            </SubmitButton>
+          </NewsletterForm>
+          {newsletterMessage && (
+            newsletterMessage.type === 'success' ? (
+              <SuccessMessage>{newsletterMessage.text}</SuccessMessage>
+            ) : (
+              <ErrorMessage>{newsletterMessage.text}</ErrorMessage>
+            )
+          )}
+        </NewsletterContainer>
+      </NewsletterSection>
+    </HomeContainer>
+  )
+}
+
+export default Home

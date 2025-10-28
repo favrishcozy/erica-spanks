@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" fill="none">
+  <rect width="800" height="1000" rx="20" fill="#F5F5F7" />
+  <g transform="translate(120,160)" fill="#E0E0E0">
+    <rect x="0" y="0" width="560" height="680" rx="12" />
+  </g>
+  <g transform="translate(200,220)" fill="#FFFFFF" opacity="0.6">
+    <rect x="0" y="0" width="400" height="560" rx="8" />
+  </g>
+  <text x="50%" y="92%" dominant-baseline="middle" text-anchor="middle" fill="#BDBDBD" font-family="Inter, Arial, sans-serif" font-size="20">Image unavailable</text>
+</svg>
