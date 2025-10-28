@@ -1,0 +1,18 @@
+{
+  "categories": [
+    {
+      "name": "Custom Dresses",
+      "slug": "custom-dresses",
+      "description": "Unique dresses tailored to your style."
+    },
+    {
+      "name": "Special Tops",
+      "slug": "special-tops",
+      "description": "Exclusive top designs."
+    }
+  ],
+  "localImagesByCategory": {
+    "Custom Dresses": ["/images/Dress4.jpeg", "/images/Dress2.jpeg"],
+    "Special Tops": ["/images/Top3.jpeg"]
+  }
+}
