@@ -1,0 +1,62 @@
+### Node
+node_modules/
+**/node_modules/
+/.pnp/
+/.pnp.js
+
+### Build outputs
+dist/
+build/
+**/dist/
+**/build/
+out/
+
+### Vite / Next / CRA
+.vite/
+.next/
+/.turbo/
+
+### Typescript
+*.tsbuildinfo
+
+### Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+### Env files
+.env
+.env.*
+.local
+
+### OS
+.DS_Store
+Thumbs.db
+
+### IDEs
+.idea/
+.vscode/
+/.vscode/
+.history/
+
+### Temporary and system folders
+tmp/
+temp/
+cache/
+.cache/
+/.sass-cache
+
+### Uploads and generated media
+tmp/uploads/
+public/uploads/
+
+### Mac/
+.DS_Store
+
+### Misc
+coverage/
+.nyc_output/
+/.parcel-cache/
