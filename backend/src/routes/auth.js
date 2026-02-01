@@ -1,5 +1,6 @@
 import express from 'express'
 import User from '../models/User.js'
+import Product from '../models/Product.js'
 import { generateToken } from '../utils/jwt.js'
 import { protect } from '../middleware/auth.js'
 
@@ -90,8 +91,11 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
 
+    console.log('[LOGIN] Attempting login with email:', email)
+
     // Validation
     if (!email || !password) {
+      console.log('[LOGIN] Missing email or password')
       return res.status(400).json({
         success: false,
         error: 'Please provide email and password'
@@ -101,7 +105,23 @@ router.post('/login', async (req, res) => {
     // Find user and include password for comparison (overrides select: false)
     const user = await User.findOne({ email }).select('+password')
     
-    if (!user || !(await user.comparePassword(password))) {
+    console.log('[LOGIN] User found:', user ? 'yes' : 'no')
+    
+    if (!user) {
+      console.log('[LOGIN] User not found with email:', email)
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
+      })
+    }
+
+    // Test password
+    console.log('[LOGIN] Testing password...')
+    const passwordMatch = await user.comparePassword(password)
+    console.log('[LOGIN] Password match:', passwordMatch)
+    
+    if (!passwordMatch) {
+      console.log('[LOGIN] Password mismatch for user:', email)
       return res.status(401).json({
         success: false,
         error: 'Invalid email or password'
@@ -109,6 +129,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user.isActive) {
+      console.log('[LOGIN] Account inactive for user:', email)
       return res.status(401).json({
         success: false,
         error: 'Account is deactivated. Please contact support.'
@@ -122,6 +143,8 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = generateToken(user._id)
 
+    console.log('[LOGIN] Login successful for user:', email)
+
     res.json({
       success: true,
       data: {
@@ -132,7 +155,7 @@ router.post('/login', async (req, res) => {
     })
 
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('[LOGIN] Login error:', error)
     res.status(500).json({
       success: false,
       error: 'Server error during login'
@@ -219,6 +242,26 @@ router.put('/profile', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error updating profile'
+    })
+  }
+})
+
+// Logout user
+router.post('/logout', protect, async (req, res) => {
+  try {
+    // Clear any session-related data if using sessions
+    // For JWT-based auth, the session is cleared on the client side
+    console.log('[LOGOUT] User logged out:', req.user._id)
+    
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    })
+  } catch (error) {
+    console.error('[LOGOUT] Logout error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Server error during logout'
     })
   }
 })
@@ -364,6 +407,106 @@ router.delete('/addresses/:addressId', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error deleting address'
+    })
+  }
+})
+
+// Get user's wishlist
+router.get('/wishlist', protect, async (req, res) => {
+  try {
+    await req.user.populate('wishlist', 'name price images slug category')
+    res.json({
+      success: true,
+      data: req.user.wishlist
+    })
+  } catch (error) {
+    console.error('Get wishlist error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Server error fetching wishlist'
+    })
+  }
+})
+
+// Add product to wishlist
+router.post('/wishlist', protect, async (req, res) => {
+  try {
+    const { productId } = req.body
+
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Product ID is required'
+      })
+    }
+
+    // Check if product exists
+    const product = await Product.findById(productId)
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      })
+    }
+
+    // Check if already in wishlist
+    if (req.user.wishlist.includes(productId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Product already in wishlist'
+      })
+    }
+
+    req.user.wishlist.push(productId)
+    await req.user.save()
+
+    await req.user.populate('wishlist', 'name price images slug category')
+
+    res.status(201).json({
+      success: true,
+      data: req.user.wishlist,
+      message: 'Product added to wishlist'
+    })
+
+  } catch (error) {
+    console.error('Add to wishlist error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Server error adding to wishlist'
+    })
+  }
+})
+
+// Remove product from wishlist
+router.delete('/wishlist/:productId', protect, async (req, res) => {
+  try {
+    const { productId } = req.params
+
+    // Check if product exists in wishlist
+    const index = req.user.wishlist.indexOf(productId)
+    if (index === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found in wishlist'
+      })
+    }
+
+    req.user.wishlist.splice(index, 1)
+    await req.user.save()
+
+    await req.user.populate('wishlist', 'name price images slug category')
+
+    res.json({
+      success: true,
+      data: req.user.wishlist,
+      message: 'Product removed from wishlist'
+    })
+
+  } catch (error) {
+    console.error('Remove from wishlist error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Server error removing from wishlist'
     })
   }
 })

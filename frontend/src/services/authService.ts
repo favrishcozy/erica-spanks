@@ -120,10 +120,72 @@ class AuthService {
     }
   }
 
-  logout(): void {
-    this.token = null
-    this.user = null
-    this.clearAuthFromStorage()
+  async logout(): Promise<void> {
+    try {
+      // Call backend logout endpoint to clear server-side sessions
+      try {
+        await authAPI.logout()
+      } catch (error) {
+        console.log('Note: Backend logout returned an error, but clearing local session anyway', error)
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      // Always clear local session regardless of backend response
+      this.token = null
+      this.user = null
+      this.clearAuthFromStorage()
+      
+      // Clear any other session-related data
+      if (typeof window !== 'undefined') {
+        // Clear cart and other temporary data
+        sessionStorage.clear()
+        // Clear Zustand store data
+        localStorage.removeItem('cart-storage')
+        localStorage.removeItem('wishlist-storage')
+        localStorage.removeItem('auth-storage')
+        
+        // Clear any pending orders or temporary data
+        localStorage.removeItem('pendingOrderId')
+        localStorage.removeItem('cartData')
+        localStorage.removeItem('userPreferences')
+        localStorage.removeItem('cart')
+        localStorage.removeItem('shippingAddress')
+        localStorage.removeItem('billingAddress')
+        localStorage.removeItem('selectedPaymentMethod')
+        localStorage.removeItem('orderSummary')
+        localStorage.removeItem('guestUserData')
+        localStorage.removeItem('guestCart')
+        localStorage.removeItem('guestShipping')
+        localStorage.removeItem('guestBilling')
+        localStorage.removeItem('guestPayment')
+        localStorage.removeItem('guestOrder')
+        localStorage.removeItem('guestCheckout')
+        localStorage.removeItem('guestSession')
+        localStorage.removeItem('guestCartItems')
+        localStorage.removeItem('guestCartTotal')
+        localStorage.removeItem('guestCartCount')
+        localStorage.removeItem('guestCartSubtotal')
+        localStorage.removeItem('guestCartTax')
+        localStorage.removeItem('guestCartShipping')
+        localStorage.removeItem('guestCartDiscount')
+        localStorage.removeItem('guestCartGrandTotal')
+        localStorage.removeItem('guestCartItemsCount')
+        localStorage.removeItem('guestCartItemsTotal')
+        localStorage.removeItem('guestCartItemsSubtotal')
+        localStorage.removeItem('guestCartItemsTax')
+        localStorage.removeItem('guestCartItemsShipping')
+        localStorage.removeItem('guestCartItemsDiscount')
+        localStorage.removeItem('guestCartItemsGrandTotal')
+        localStorage.removeItem('guestCartItemsCount')
+        localStorage.removeItem('guestCartItemsTotal')
+        localStorage.removeItem('guestCartItemsSubtotal')
+        localStorage.removeItem('guestCartItemsTax')
+        localStorage.removeItem('guestCartItemsShipping')
+        localStorage.removeItem('guestCartItemsDiscount')
+        localStorage.removeItem('guestCartItemsGrandTotal')
+      }
+    }
   }
 
   getToken(): string | null {

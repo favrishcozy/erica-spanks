@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
+import { API_BASE_URL } from '../../config/environment'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
-import { Search, ShoppingBag, User, Menu, X, Heart, ChevronDown } from 'lucide-react'
+import { Search, ShoppingBag, User, Menu, X, Heart, ChevronDown, Settings } from 'lucide-react'
 import { useCartStore } from '../../stores/cartStore'
-import { useAuthStore } from '../../stores/authStore'
+import { useWishlistStore } from '../../stores/wishlistStore'
+import { useAuth } from '../../contexts/AuthContext'
 
 const HeaderContainer = styled.header`
   position: fixed;
@@ -93,6 +96,54 @@ const NavLink = styled(Link)<{ $isActive?: boolean }>`
   `}
 `
 
+const DropdownWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+`
+
+const DropdownButton = styled.button<{ $isActive?: boolean }>`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${({ theme, $isActive }) => $isActive ? theme.colors.primary : theme.colors.black};
+  font-weight: ${({ theme, $isActive }) => $isActive ? theme.fontWeights.semibold : theme.fontWeights.medium};
+  text-transform: uppercase;
+  font-size: ${({ theme }) => theme.fontSizes.xs};
+  padding: ${({ theme }) => theme.spacing.sm} 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+  }
+`
+
+const DropdownMenu = styled.div<{ $open: boolean }>`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: ${({ theme }) => theme.colors.white};
+  border: 1px solid ${({ theme }) => theme.colors.lightGray};
+  box-shadow: ${({ theme }) => theme.shadows.md};
+  min-width: 220px;
+  padding: ${({ theme }) => theme.spacing.sm};
+  display: ${({ $open }) => $open ? 'block' : 'none'};
+  z-index: ${({ theme }) => theme.zIndex.dropdown};
+`
+
+const DropdownItem = styled(Link)`
+  display: block;
+  padding: 8px 10px;
+  color: ${({ theme }) => theme.colors.black};
+  text-decoration: none;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryLight};
+    color: ${({ theme }) => theme.colors.primary};
+  }
+`
+
 const Actions = styled.div`
   display: flex;
   align-items: center;
@@ -114,7 +165,7 @@ const SearchContainer = styled.div`
 `
 
 const SearchInput = styled.input`
-  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.lg} ${theme.spacing.xs} 36px`};
   border: 1px solid ${({ theme }) => theme.colors.mediumGray};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   font-size: ${({ theme }) => theme.fontSizes.xs};
@@ -135,10 +186,11 @@ const SearchInput = styled.input`
 
 const SearchIcon = styled(Search)`
   position: absolute;
-  left: ${({ theme }) => theme.spacing.sm};
-  width: 14px;
-  height: 14px;
+  left: 12px;
+  width: 16px;
+  height: 16px;
   color: ${({ theme }) => theme.colors.darkGray};
+  pointer-events: none;
 `
 
 const IconButton = styled.button`
@@ -272,30 +324,115 @@ const MobileNavLink = styled(Link)`
 
 const MobileSearchContainer = styled.div`
   padding: ${({ theme }) => theme.spacing.md} 0;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.lightGray};
   margin-bottom: ${({ theme }) => theme.spacing.md};
 `
 
-const MobileSearchInput = styled(SearchInput)`
+const MobileSearchButton = styled(IconButton)`
+  @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
+    display: none;
+  }
+`
+
+const MobileSearchOverlay = styled.div<{ $isOpen: boolean }>`
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: ${({ theme }) => theme.colors.white};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.lightGray};
+  padding: ${({ theme }) => theme.spacing.md};
+  z-index: ${({ theme }) => theme.zIndex.sticky - 1};
+  transform: translateY(${({ $isOpen }) => $isOpen ? '0' : '-100%'});
+  opacity: ${({ $isOpen }) => $isOpen ? 1 : 0};
+  visibility: ${({ $isOpen }) => $isOpen ? 'visible' : 'hidden'};
+  transition: all 0.3s ease;
+  
+  @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
+    display: none;
+  }
+`
+
+const MobileSearchForm = styled.form`
+  position: relative;
+  display: flex;
+  align-items: center;
   width: 100%;
+  background: ${({ theme }) => theme.colors.offWhite};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+  border: 1px solid ${({ theme }) => theme.colors.lightGray};
+  transition: ${({ theme }) => theme.transitions.fast};
+
+  &:focus-within {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primaryLight};
+  }
+`
+
+const MobileSearchIcon = styled(Search)`
+  width: 18px;
+  height: 18px;
+  color: ${({ theme }) => theme.colors.mediumGray};
+  margin-right: ${({ theme }) => theme.spacing.sm};
+  flex-shrink: 0;
+`
+
+const MobileSearchInputExpanded = styled.input`
+  flex: 1;
+  border: none;
+  background: transparent;
   font-size: ${({ theme }) => theme.fontSizes.sm};
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.xl};
+  color: ${({ theme }) => theme.colors.black};
+  outline: none;
+
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.mediumGray};
+    font-size: ${({ theme }) => theme.fontSizes.sm};
+  }
+`
+
+const MobileSearchSubmitButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  background: ${({ theme }) => theme.colors.primary};
+  border: none;
+  color: ${({ theme }) => theme.colors.white};
+  cursor: pointer;
+  transition: ${({ theme }) => theme.transitions.fast};
+  margin-left: ${({ theme }) => theme.spacing.xs};
+  flex-shrink: 0;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 `
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const { items } = useCartStore()
-  const { user, isInWishlist } = useAuthStore()
-  
+  const { items: wishlistItems } = useWishlistStore()
+  const { user } = useAuth()
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const wishlistCount = user?.wishlist?.length || 0
+  const wishlistCount = wishlistItems.length
   
-  // Close mobile menu on route change
+  // Close mobile menu and search on route change
   useEffect(() => {
     setIsMenuOpen(false)
+    setIsMobileSearchOpen(false)
   }, [location.pathname])
   
   // Prevent body scroll when menu is open
@@ -333,13 +470,62 @@ const Header: React.FC = () => {
     ],
   }
   
+  // Dynamic categories and occasions loaded from API (fallback to navCategories shape)
+  const [allCategories, setAllCategories] = useState<any[]>([])
+  const [allOccasions, setAllOccasions] = useState<any[]>([])
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/categories`)
+        const cats = res.data?.data || []
+        setAllCategories(cats)
+      } catch (e) {
+        console.error('Failed to load categories for header:', e)
+      }
+    }
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    const fetchOccasions = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/occasions`)
+        const occasions = res.data?.data || []
+        setAllOccasions(occasions)
+      } catch (e) {
+        console.error('Failed to load occasions for header:', e)
+      }
+    }
+    fetchOccasions()
+  }, [])
+
+  const primaryCats = allCategories
+  const occasionCats = allOccasions
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!dropdownRef.current) return
+      if (!(e.target instanceof Node)) return
+      if (!dropdownRef.current.contains(e.target)) {
+        setOpenDropdown(null)
+      }
+    }
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [])
+
+  const toggleDropdown = (key: string) => {
+    setOpenDropdown(prev => prev === key ? null : key)
+  }
+  
   const mainNavItems = [
     { path: '/products/new-in', label: 'New In' },
-    { path: '/products/dresses', label: 'Dresses' },
-    { path: '/products/tops', label: 'Tops' },
-    { path: '/products/bottoms', label: 'Bottoms' },
-    { path: '/products/loungewear', label: 'Loungewear' },
     { path: '/lookbook', label: 'Lookbook' },
+    { path: '/contact', label: 'Contact' },
     { path: '/about', label: 'About' },
   ]
   
@@ -375,16 +561,76 @@ const Header: React.FC = () => {
             </LogoContainer>
           </div>
           
-          <Nav>
+          <Nav ref={dropdownRef}>
             {mainNavItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
-                $isActive={location.pathname === item.path} // Fixed prop name
+                $isActive={location.pathname === item.path}
               >
                 {item.label}
               </NavLink>
             ))}
+
+            <DropdownWrapper>
+              <DropdownButton
+                onClick={() => toggleDropdown('clothing')}
+                aria-expanded={openDropdown === 'clothing'}
+                $isActive={openDropdown === 'clothing'}
+              >
+                Clothing
+                <ChevronDown size={14} />
+              </DropdownButton>
+              <DropdownMenu $open={openDropdown === 'clothing'}>
+                {primaryCats.length > 0 ? (
+                  primaryCats.map((c: any) => (
+                    <DropdownItem
+                      key={c._id}
+                      to={`/products?category=${encodeURIComponent(c.slug)}`}
+                      onClick={() => setOpenDropdown(null)}
+                    >
+                      {c.name}
+                    </DropdownItem>
+                  ))
+                ) : (
+                  Object.entries(navCategories['CLOTHING']).map(([k, v]: any, idx) => (
+                    <DropdownItem key={idx} to={`/products?category=${encodeURIComponent(v.path.split('/').pop())}`} onClick={() => setOpenDropdown(null)}>
+                      {v.label}
+                    </DropdownItem>
+                  ))
+                )}
+              </DropdownMenu>
+            </DropdownWrapper>
+
+            <DropdownWrapper>
+              <DropdownButton
+                onClick={() => toggleDropdown('occasions')}
+                aria-expanded={openDropdown === 'occasions'}
+                $isActive={openDropdown === 'occasions'}
+              >
+                Occasions
+                <ChevronDown size={14} />
+              </DropdownButton>
+              <DropdownMenu $open={openDropdown === 'occasions'}>
+                {occasionCats.length > 0 ? (
+                  occasionCats.map((c: any) => (
+                    <DropdownItem
+                      key={c._id}
+                      to={`/products?occasion=${encodeURIComponent(c.slug)}`}
+                      onClick={() => setOpenDropdown(null)}
+                    >
+                      {c.name}
+                    </DropdownItem>
+                  ))
+                ) : (
+                  Object.entries(navCategories['OCCASIONS']).map(([k, v]: any, idx) => (
+                    <DropdownItem key={idx} to={`/products?occasion=${encodeURIComponent(v.path.split('/').pop())}`} onClick={() => setOpenDropdown(null)}>
+                      {v.label}
+                    </DropdownItem>
+                  ))
+                )}
+              </DropdownMenu>
+            </DropdownWrapper>
           </Nav>
           
           <Actions>
@@ -399,7 +645,17 @@ const Header: React.FC = () => {
                 />
               </form>
             </SearchContainer>
-            
+
+            <MobileSearchButton onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}>
+              <Search size={16} />
+            </MobileSearchButton>
+
+            {user?.role === 'admin' && (
+              <IconButton as={Link} to="/admin/dashboard" title="Admin Panel">
+                <Settings size={16} />
+              </IconButton>
+            )}
+
             {user && (
               <IconButton as={Link} to="/wishlist">
                 <Heart size={16} />
@@ -408,10 +664,19 @@ const Header: React.FC = () => {
                 )}
               </IconButton>
             )}
-            
-            <IconButton as={Link} to={user ? '/profile' : '/login'}>
-              <User size={16} />
-            </IconButton>
+
+            {/* Show profile for non-admin users; show login for guests; hide profile for admins */}
+            {user ? (
+              user.role !== 'admin' ? (
+                <IconButton as={Link} to="/profile">
+                  <User size={16} />
+                </IconButton>
+              ) : null
+            ) : (
+              <IconButton as={Link} to="/login">
+                <User size={16} />
+              </IconButton>
+            )}
             
             <IconButton as={Link} to="/cart">
               <ShoppingBag size={16} />
@@ -422,11 +687,28 @@ const Header: React.FC = () => {
           </Actions>
         </HeaderContent>
       </HeaderContainer>
-      
+
+      {/* Mobile Search Overlay */}
+      <MobileSearchOverlay $isOpen={isMobileSearchOpen}>
+        <MobileSearchForm onSubmit={(e) => { handleSearchSubmit(e); setIsMobileSearchOpen(false); }}>
+          <MobileSearchIcon />
+          <MobileSearchInputExpanded
+            type="text"
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+          <MobileSearchSubmitButton type="submit">
+            <Search size={16} />
+          </MobileSearchSubmitButton>
+        </MobileSearchForm>
+      </MobileSearchOverlay>
+
       {/* Mobile Menu Overlay */}
-      <MobileMenuOverlay 
-        $isOpen={isMenuOpen} 
-        onClick={() => setIsMenuOpen(false)} 
+      <MobileMenuOverlay
+        $isOpen={isMenuOpen}
+        onClick={() => setIsMenuOpen(false)}
       />
       
       {/* Mobile Menu */}
@@ -445,34 +727,57 @@ const Header: React.FC = () => {
         
         <MobileMenuContent>
           <MobileSearchContainer>
-            <form onSubmit={handleSearchSubmit}>
-              <SearchIcon size={14} />
-              <MobileSearchInput
+            <MobileSearchForm onSubmit={(e) => { handleSearchSubmit(e); setIsMenuOpen(false); }}>
+              <MobileSearchIcon />
+              <MobileSearchInputExpanded
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-            </form>
+              <MobileSearchSubmitButton type="submit">
+                <Search size={16} />
+              </MobileSearchSubmitButton>
+            </MobileSearchForm>
           </MobileSearchContainer>
           
           {Object.entries(navCategories).map(([categoryName, items]) => (
             <CategorySection key={categoryName}>
               <CategoryTitle>{categoryName}</CategoryTitle>
-              {items.map((item) => (
-                <MobileNavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </MobileNavLink>
-              ))}
+              {items.map((item) => {
+                // Convert hardcoded paths to query parameters
+                let toPath = item.path
+                if (item.path.startsWith('/products/')) {
+                  const pathPart = item.path.split('/').pop()
+                  if (pathPart) {
+                    if (categoryName === 'CLOTHING') {
+                      toPath = `/products?category=${encodeURIComponent(pathPart)}`
+                    } else if (categoryName === 'OCCASIONS') {
+                      toPath = `/products?occasion=${encodeURIComponent(pathPart)}`
+                    }
+                  }
+                }
+                
+                return (
+                  <MobileNavLink
+                    key={item.path}
+                    to={toPath}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.label}
+                  </MobileNavLink>
+                )
+              })}
             </CategorySection>
           ))}
           
           <CategorySection>
             <CategoryTitle>MORE</CategoryTitle>
+            {user?.role === 'admin' && (
+              <MobileNavLink to="/admin/dashboard" onClick={() => setIsMenuOpen(false)}>
+                Admin Panel
+              </MobileNavLink>
+            )}
             <MobileNavLink to="/lookbook" onClick={() => setIsMenuOpen(false)}>
               Lookbook
             </MobileNavLink>

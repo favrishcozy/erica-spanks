@@ -3,7 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 import { Home, Search, ShoppingBag, User, Heart } from 'lucide-react'
 import { useCartStore } from '../../stores/cartStore'
+import { useWishlistStore } from '../../stores/wishlistStore'
 import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../contexts/AuthContext'
 
 const MobileNavContainer = styled.nav`
   position: fixed;
@@ -94,10 +96,19 @@ const NavLabel = styled.span`
 const MobileNav: React.FC = () => {
   const location = useLocation()
   const { items } = useCartStore()
-  const { user } = useAuthStore()
+  const { items: wishlistItems } = useWishlistStore()
+  // Prefer context-based auth if available to stay consistent
+  let user = null
+  try {
+    const ctx = useAuth()
+    user = ctx?.user ?? null
+  } catch (e) {
+    const store = useAuthStore()
+    user = store.user
+  }
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const wishlistCount = user?.wishlist?.length || 0
+  const wishlistCount = wishlistItems.length
   
   const navItems = [
     {
@@ -127,25 +138,30 @@ const MobileNav: React.FC = () => {
       path: user ? '/profile' : '/login',
       icon: User,
       label: user ? 'Profile' : 'Login',
+      hideForAdmin: true, // Hide profile tab for admin users
     },
   ]
   
-  // Filter nav items based on authentication
-  const filteredNavItems = navItems.filter(item => !item.requiresAuth || user)
+  // Filter nav items based on authentication and user role
+  const filteredNavItems = navItems.filter(item => {
+    if (item.requiresAuth && !user) return false
+    if (item.hideForAdmin && user?.role === 'admin') return false
+    return true
+  })
   
   return (
     <MobileNavContainer>
       <NavList>
         {filteredNavItems.map((item) => {
           const Icon = item.icon
-          const isActive = location.pathname === item.path ||
+          const isNavItemActive = location.pathname === item.path ||
             (item.path === '/products' && location.pathname.startsWith('/products')) ||
             (item.path === '/search' && location.pathname.startsWith('/search'))
           
           return (
-            <NavItem key={item.path} to={item.path} $active={isActive}>
+            <NavItem key={item.path} to={item.path} $active={isNavItemActive}>
               <IconWrapper>
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <Icon size={20} strokeWidth={isNavItemActive ? 2.5 : 2} />
                 {item.badge !== undefined && item.badge > 0 && (
                   <Badge>{item.badge > 99 ? '99+' : item.badge}</Badge>
                 )}

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { Filter, Grid, List, Heart, ShoppingBag, Star, X } from 'lucide-react'
 import { useCartStore } from '../stores/cartStore'
+import { useWishlistStore } from '../stores/wishlistStore'
 import toast from 'react-hot-toast'
 import { productAPI } from '../services/api'
 import { Product } from '../types/Product'
+import { formatPrice } from '../utils/currency'
 
 // Types (keeping your existing types, they're compatible)
 interface Product {
@@ -491,7 +493,11 @@ const CloseButton = styled.button`
 const ProductList: React.FC = () => {
   const { category } = useParams<{ category: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  // Support category passed either as route param or as query param (header uses ?category=slug)
+  const searchCategory = searchParams.get('category') || ''
+  const activeCategory = category || searchCategory
   const { addItem } = useCartStore()
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
   
   // State - updated with error state
   const [products, setProducts] = useState<Product[]>([])
@@ -499,7 +505,6 @@ const ProductList: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
-  const [wishlist, setWishlist] = useState<string[]>([])
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -524,8 +529,39 @@ const ProductList: React.FC = () => {
     priceRange: { min: 0, max: 500 }
   })
   
-  // Get category info
-  const getCategoryInfo = (cat?: string) => {
+  // Get category/occasion info
+  const getCategoryInfo = (cat?: string, occ?: string) => {
+    if (occ) {
+      // Handle occasion slugs
+      switch (occ) {
+        case 'party':
+          return {
+            title: 'Party Wear',
+            description: 'Perfect for celebrations and nights out'
+          }
+        case 'date-night':
+          return {
+            title: 'Date Night',
+            description: 'Romantic and memorable looks'
+          }
+        case 'work':
+          return {
+            title: 'Workwear',
+            description: 'Professional and polished pieces'
+          }
+        case 'casual':
+          return {
+            title: 'Everyday Wear',
+            description: 'Comfortable everyday essentials'
+          }
+        default:
+          return {
+            title: 'Occasions',
+            description: 'Find the perfect outfit for any occasion'
+          }
+      }
+    }
+
     switch (cat) {
       case 'dresses':
         return {
@@ -560,40 +596,50 @@ const ProductList: React.FC = () => {
     }
   }
   
-  const categoryInfo = getCategoryInfo(category)
+  const occasion = searchParams.get('occasion') || ''
+  const categoryInfo = getCategoryInfo(activeCategory, occasion)
 
   // Product fetching with API integration
   useEffect(() => {
+    const q = searchParams.get('q') || ''
+    const occasion = searchParams.get('occasion') || ''
     const fetchProducts = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
-        let response;
-        
-        if (category && category !== 'all') {
+        setLoading(true)
+        setError(null)
+
+        let response
+
+        if (q) {
+          // Use search endpoint when query provided
+          response = await productAPI.searchProducts(q)
+        } else if (occasion && occasion !== 'all') {
+          // Use general products endpoint with occasion filter
+          response = await productAPI.getProducts({ occasion })
+        } else if (activeCategory && activeCategory !== 'all') {
           // Use category-specific endpoint
-              response = await productAPI.getProductsByCategory(category);
-  } else {
-    // Get all products
-    response = await productAPI.getProducts();
+          response = await productAPI.getProductsByCategory(activeCategory)
+        } else {
+          // Get all products
+          response = await productAPI.getProducts()
         }
 
-        if (response.success) {
-          setProducts(response.data);
+        if (response.success || response.data) {
+          // Some endpoints return { success, data } while others return { data }
+          setProducts(response.data ?? response)
         } else {
-          throw new Error('Failed to fetch products');
+          throw new Error('Failed to fetch products')
         }
       } catch (err) {
-        console.error('Error fetching products:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        console.error('Error fetching products:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchProducts();
-  }, [category]);
+    fetchProducts()
+  }, [category, searchParams.get('q'), searchParams.get('occasion'), searchParams.get('category')])
   
   // Handle filter changes
   const handleFilterChange = (type: string, value: string | string[]) => {
@@ -605,31 +651,43 @@ const ProductList: React.FC = () => {
   
   // Handle add to cart
   const handleAddToCart = (product: Product) => {
-    const variation = product.variations[0] // For demo, use first variation
-    addItem({
-      id: product._id,
-      name: product.name,
-      price: variation.price,
-      image: variation.images[0]?.url || '/placeholder.jpg',
-      size: variation.size,
-      color: variation.color,
-      quantity: 1
-    })
-    toast.success(`${product.name} added to cart!`)
+    const variations = product.variations || []
+    if (variations.length === 1) {
+      const v = variations[0]
+      addItem({
+        id: product._id,
+        name: product.name,
+        price: v.price,
+        image: v.images[0]?.url || '/placeholder.jpg',
+        size: v.size,
+        color: v.color,
+        quantity: 1,
+      })
+      toast.success(`${product.name} added to cart!`)
+    } else {
+      // Add a placeholder cart item; user will select size/color in cart
+      const prices = variations.map(v => Number(v.price) || 0)
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0
+      addItem({
+        id: product._id,
+        name: product.name,
+        price: minPrice,
+        image: variations[0]?.images[0]?.url || '/placeholder.jpg',
+        quantity: 1,
+      })
+      toast.success(`${product.name} added to cart — select size & color in your cart before checkout`)
+    }
   }
   
   // Handle wishlist toggle
   const toggleWishlist = (productId: string) => {
-    setWishlist(prev => {
-      const isInWishlist = prev.includes(productId)
-      if (isInWishlist) {
-        toast.success('Removed from wishlist')
-        return prev.filter(id => id !== productId)
-      } else {
-        toast.success('Added to wishlist')
-        return [...prev, productId]
-      }
-    })
+    if (isInWishlist(productId)) {
+      removeFromWishlist(productId)
+      toast.success('Removed from wishlist')
+    } else {
+      addToWishlist(productId)
+      toast.success('Added to wishlist')
+    }
   }
   
   // Calculate discount percentage
@@ -653,6 +711,49 @@ const ProductList: React.FC = () => {
     }
     return stars
   }
+
+  // Compute filtered & sorted products from active filters
+  const filteredProducts = useMemo<Product[]>(() => {
+    const { sizes, colors, minPrice, maxPrice, sort } = filters
+
+    let list = products.slice()
+
+    // Filter by sizes
+    if (sizes.length > 0) {
+      list = list.filter(p => p.variations.some(v => sizes.includes(v.size)))
+    }
+
+    // Filter by colors
+    if (colors.length > 0) {
+      list = list.filter(p => p.variations.some(v => colors.includes(v.color)))
+    }
+
+    // Filter by price range (based on first variation price)
+    const min = minPrice ? Number(minPrice) : NaN
+    const max = maxPrice ? Number(maxPrice) : NaN
+    if (!isNaN(min)) {
+      list = list.filter(p => p.variations.some(v => v.price >= min))
+    }
+    if (!isNaN(max)) {
+      list = list.filter(p => p.variations.some(v => v.price <= max))
+    }
+
+    // Sorting
+    if (sort === 'price-asc') {
+      list.sort((a, b) => (a.variations[0].price ?? 0) - (b.variations[0].price ?? 0))
+    } else if (sort === 'price-desc') {
+      list.sort((a, b) => (b.variations[0].price ?? 0) - (a.variations[0].price ?? 0))
+    } else if (sort === 'rating') {
+      list.sort((a, b) => (b.rating.average ?? 0) - (a.rating.average ?? 0))
+    } else if (sort === 'popular') {
+      list.sort((a, b) => (b.rating.count ?? 0) - (a.rating.count ?? 0))
+    } else if (sort === 'newest') {
+      // keep API order, but prefer items marked `isNew`
+      list.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
+    }
+
+    return list
+  }, [products, filters])
 
   // Updated loading and error states
   if (loading) {
@@ -766,7 +867,7 @@ const ProductList: React.FC = () => {
         <ProductArea>
           <ProductHeader>
             <ResultsInfo>
-              Showing {products.length} products
+              Showing {filteredProducts.length} products
             </ResultsInfo>
             
             <Controls>
@@ -798,20 +899,21 @@ const ProductList: React.FC = () => {
             </Controls>
           </ProductHeader>
           
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <EmptyState>
               <h3>No products found</h3>
               <p>Try adjusting your filters or browse our other categories.</p>
             </EmptyState>
           ) : (
             <ProductGrid view={view}>
-              {products.map(product => {
+              {filteredProducts.map(product => {
                 const variation = product.variations[0]
                 const discount = getDiscountPercentage(variation.price, variation.compareAtPrice)
-                const isInWishlist = wishlist.includes(product._id)
+                const inWishlist = isInWishlist(product._id)
                 
                 return (
-                  <ProductCard key={product._id} view={view}>
+                  <Link key={product._id} to={`/product/${product._id || product.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <ProductCard view={view}>
                     <ProductImage view={view}>
                       <img
                         src={variation.images[0]?.url || '/placeholder.jpg'}
@@ -829,8 +931,8 @@ const ProductList: React.FC = () => {
                       <WishlistButton onClick={() => toggleWishlist(product._id)}>
                         <Heart
                           size={18}
-                          fill={isInWishlist ? '#F4C2C2' : 'none'}
-                          color={isInWishlist ? '#F4C2C2' : '#666666'}
+                          fill={inWishlist ? '#F4C2C2' : 'none'}
+                          color={inWishlist ? '#F4C2C2' : '#666666'}
                         />
                       </WishlistButton>
                     </ProductImage>
@@ -851,11 +953,11 @@ const ProductList: React.FC = () => {
                         </ProductRating>
                         
                         <ProductPrice>
-                          <CurrentPrice>${variation.price.toFixed(2)}</CurrentPrice>
+                          <CurrentPrice>{formatPrice(variation.price)}</CurrentPrice>
                           {variation.compareAtPrice && variation.compareAtPrice > variation.price && (
                             <>
                               <OriginalPrice>
-                                ${variation.compareAtPrice.toFixed(2)}
+                                {formatPrice(variation.compareAtPrice)}
                               </OriginalPrice>
                               <DiscountBadge>-{discount}%</DiscountBadge>
                             </>
@@ -863,15 +965,16 @@ const ProductList: React.FC = () => {
                         </ProductPrice>
                       </div>
                       
-                      <AddToCartButton
-                        onClick={() => handleAddToCart(product)}
-                        disabled={variation.inventory.quantity === 0}
-                      >
-                        <ShoppingBag size={16} />
-                        {variation.inventory.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
-                      </AddToCartButton>
+                            <AddToCartButton
+                              onClick={() => handleAddToCart(product)}
+                              disabled={variation.inventory.quantity === 0}
+                            >
+                              <ShoppingBag size={16} />
+                              {variation.inventory.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                            </AddToCartButton>
                     </ProductInfo>
                   </ProductCard>
+                  </Link>
                 )
               })}
             </ProductGrid>

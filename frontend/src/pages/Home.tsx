@@ -373,7 +373,7 @@ const NewsletterForm = styled.form`
   gap: ${({ theme }) => theme.spacing.md};
   margin-top: ${({ theme }) => theme.spacing.xl};
   
-  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
     flex-direction: column;
   }
 `
@@ -399,14 +399,19 @@ const SubmitButton = styled.button`
   background: ${({ theme }) => theme.colors.primary};
   color: ${({ theme }) => theme.colors.white};
   border: none;
-  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   cursor: pointer;
   transition: ${({ theme }) => theme.transitions.fast};
-  
+
   &:hover {
     background: ${({ theme }) => theme.colors.primaryDark};
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    width: 100%;
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   }
 `
 
@@ -483,50 +488,7 @@ const HeroVideoPlayer: React.FC = () => {
 }
 
 // Mock data
-const mockFeaturedProducts: Product[] = [
-  {
-    _id: '1', name: 'Satin Slip Dress', price: 89.99, originalPrice: 119.99,
-    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg'],
-    colors: ['Black', 'Pink', 'White'], sizes: ['XS', 'S', 'M', 'L'], rating: 4.8, reviewCount: 124,
-    isNew: true, category: 'Dresses', description: 'Elegant satin slip dress', slug: 'satin-slip-dress',
-    inStock: true, featured: true, tags: ['dress', 'satin']
-  },
-  {
-    _id: '2', name: 'Lace Bodysuit', price: 59.99,
-    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501863/erica-spanks/undefined/Lounge_apskzs.jpg'],
-    colors: ['Black', 'Nude'], sizes: ['XS', 'S', 'M', 'L', 'XL'], rating: 4.9, reviewCount: 89,
-    isNew: false, category: 'Bodysuits', description: 'Comfortable lace bodysuit', slug: 'lace-bodysuit',
-    inStock: true, featured: true, tags: ['bodysuit', 'lace']
-  },
-  {
-    _id: '3', name: 'Ribbed Mini Dress', price: 75.00, originalPrice: 95.00,
-    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501834/erica-spanks/undefined/Dress2_abmlyn.jpg'],
-    colors: ['Camel', 'Black', 'White'], sizes: ['XS', 'S', 'M', 'L'], rating: 4.7, reviewCount: 67,
-    isNew: false, isSale: true, category: 'Dresses', description: 'Stylish ribbed mini dress', 
-    slug: 'ribbed-mini-dress', inStock: true, featured: true, tags: ['dress', 'ribbed']
-  },
-  {
-    _id: '4', name: 'Seamless Bralette', price: 29.99,
-    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top_onrpuu.jpg'],
-    colors: ['Nude', 'Black', 'White', 'Pink'], sizes: ['XS', 'S', 'M', 'L', 'XL'], rating: 4.6, reviewCount: 203,
-    isNew: false, category: 'Intimates', description: 'Seamless bralette', slug: 'seamless-bralette',
-    inStock: true, featured: true, tags: ['bralette', 'seamless']
-  },
-  {
-    _id: '5', name: 'Silk Camisole', price: 45.00,
-    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top2_hserim.jpg'],
-    colors: ['Black', 'White', 'Nude'], sizes: ['XS', 'S', 'M', 'L'], rating: 4.5, reviewCount: 156,
-    isNew: true, category: 'Tops', description: 'Luxurious silk camisole', slug: 'silk-camisole',
-    inStock: true, featured: true, tags: ['top', 'silk']
-  },
-  {
-    _id: '6', name: 'Lounge Set', price: 89.99,
-    images: ['https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece_lydbu8.jpg'],
-    colors: ['Gray', 'Pink', 'Black'], sizes: ['XS', 'S', 'M', 'L'], rating: 4.8, reviewCount: 89,
-    isNew: false, category: 'Sets', description: 'Comfortable lounge set', slug: 'lounge-set',
-    inStock: true, featured: true, tags: ['set', 'lounge']
-  }
-]
+// Mock data removed - all data loaded from API
 
 const Home: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -717,6 +679,8 @@ const Home: React.FC = () => {
         } else if (response?.products && Array.isArray(response.products)) {
           productsData = response.products
         }
+        
+        console.log('[Home] Featured products response:', { response, productsData: productsData.length })
       } catch (featuredError) {
         console.warn('Featured products endpoint failed, trying regular products...', featuredError)
         
@@ -749,16 +713,14 @@ const Home: React.FC = () => {
         })
         // ensure unique, valid ids and images
         setFeaturedProducts(validProducts)
-
-        // No dev diagnostic mapping in production — mapping was useful during debugging and has been removed.
       } else {
-        setFeaturedProducts(mockFeaturedProducts)
+        setFeaturedProducts([])
       }
 
     } catch (err) {
       console.error('Error loading featured products:', err)
-      setError('Unable to load featured products at the moment. Showing sample products instead.')
-      setFeaturedProducts(mockFeaturedProducts)
+      setError('Unable to load featured products at the moment.')
+      setFeaturedProducts([])
     } finally {
       setLoading(false)
     }
@@ -794,7 +756,7 @@ const Home: React.FC = () => {
     }
   }
 
-  const displayedProducts = featuredProducts.length > 0 ? featuredProducts : mockFeaturedProducts
+  const displayedProducts = featuredProducts.length > 0 ? featuredProducts : []
 
   return (
     <HomeContainer>
@@ -961,6 +923,16 @@ const Home: React.FC = () => {
                 </CTAButton>
               </div>
             </>
+          )}
+
+          {!loading && displayedProducts.length === 0 && !error && (
+            <ErrorState>
+              No featured products available at the moment.
+              <br />
+              <CTAButton to="/products">
+                View All Products <ArrowRight size={18} />
+              </CTAButton>
+            </ErrorState>
           )}
         </ProductsContainer>
       </ProductsSection>

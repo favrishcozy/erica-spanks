@@ -1,6 +1,38 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import { Heart, ShoppingBag, ExternalLink } from 'lucide-react'
+import { formatPrice } from '../utils/currency'
+
+// Import images from the images folder
+import Bottoms1 from '../images/Bottoms.jpeg'
+import Bottoms2 from '../images/Bottoms2.jpeg'
+import Bottoms3 from '../images/Bottoms3.jpeg'
+import Bottoms4 from '../images/Bottoms4.jpeg'
+import Bottoms5 from '../images/Bottoms5.jpeg'
+import Dress1 from '../images/Dress.jpeg'
+import Dress2 from '../images/Dress2.jpeg'
+import Dress3 from '../images/Dress3.jpeg'
+import Dress4 from '../images/Dress4.jpeg'
+import Jacket1 from '../images/Jacket.jpeg'
+import Jacket2 from '../images/Jacket2.jpeg'
+import Jacket3 from '../images/Jacket3.jpeg'
+import Jacket4 from '../images/Jacket4.jpeg'
+import Lounge1 from '../images/Lounge.jpeg'
+import Lounge2 from '../images/Lounge2.jpeg'
+import Lounge3 from '../images/Lounge3.jpeg'
+import Lounge4 from '../images/Lounge4.jpeg'
+import Top1 from '../images/Top.jpeg'
+import Top2 from '../images/Top2.jpeg'
+import Top3 from '../images/Top3.jpeg'
+import Top4 from '../images/Top4.jpeg'
+import TwoPiece1 from '../images/Two-piece.jpeg'
+import TwoPiece2 from '../images/Two-piece2.jpeg'
+import TwoPiece3 from '../images/Two-piece3.jpeg'
+import TwoPiece4 from '../images/Two-piece4.jpeg'
+import TwoPiece5 from '../images/Two-piece5.jpeg'
+import blazersVideo from '../images/blazers.mp4'
+import fashionVideo1 from '../images/fashionvideo1.mp4'
+import fashionVideo2 from '../images/fashionvideo2.mp4'
 
 // Types
 interface LookbookItem {
@@ -290,14 +322,14 @@ const Lookbook: React.FC = () => {
       description: 'Our latest campaign celebrating confidence and comfort in the summer heat. Featuring our new lightweight collection.',
       category: 'campaign',
       images: [
-        { url: '/placeholder-campaign-1.jpg', alt: 'Summer Confidence Campaign' }
+        { url: Dress1, alt: 'Summer Confidence Campaign' }
       ],
       products: [
         { _id: '1', name: 'Comfort Ribbed Dress', price: 89.99, slug: 'comfort-ribbed-dress' },
         { _id: '2', name: 'Cozy Lounge Set', price: 135.00, slug: 'cozy-lounge-set' }
       ],
       tags: ['summer', 'campaign', 'confidence'],
-      publishedAt: '2024-10-15'
+      publishedAt: '2026-10-15'
     },
     {
       _id: '2',
@@ -305,13 +337,13 @@ const Lookbook: React.FC = () => {
       description: 'Street style inspiration showing how to elevate your everyday look with Erica Spanks pieces.',
       category: 'lifestyle',
       images: [
-        { url: '/placeholder-lifestyle-1.jpg', alt: 'Everyday Elegance Lifestyle' }
+        { url: TwoPiece2, alt: 'Everyday Elegance Lifestyle' }
       ],
       products: [
         { _id: '3', name: 'Essential Midi Dress', price: 79.99, slug: 'essential-midi-dress' }
       ],
       tags: ['lifestyle', 'everyday', 'elegant'],
-      publishedAt: '2024-10-10'
+      publishedAt: '2026-10-10'
     },
     {
       _id: '3',
@@ -319,13 +351,13 @@ const Lookbook: React.FC = () => {
       description: 'Fashion influencer Jane styles our latest two-piece sets for her autumn wardrobe refresh.',
       category: 'influencer',
       images: [
-        { url: '/placeholder-influencer-1.jpg', alt: 'Influencer Jane Collaboration' }
+        { url: Jacket1, alt: 'Influencer Jane Collaboration' }
       ],
       products: [
         { _id: '4', name: 'Autumn Two-Piece Set', price: 149.99, slug: 'autumn-two-piece-set' }
       ],
       tags: ['influencer', 'collaboration', 'autumn'],
-      publishedAt: '2024-10-05'
+      publishedAt: '2026-10-05'
     }
   ]
 
@@ -429,7 +461,7 @@ const Lookbook: React.FC = () => {
                         <ProductTag key={product._id}>
                           <ShoppingBag size={14} />
                           <span>{product.name}</span>
-                          <span>${product.price.toFixed(2)}</span>
+                          <span>{formatPrice(product.price)}</span>
                         </ProductTag>
                       ))}
                     </ProductsList>

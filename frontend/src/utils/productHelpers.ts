@@ -146,7 +146,25 @@ export const validateProduct = (product: any) => {
     };
   };
   
-  export const formatPrice = (price: number | undefined): string => {
-    if (price === undefined || price === null) return '$0.00';
-    return `$${price.toFixed(2)}`;
-  };
+  export const formatPrice = (price: number | string | undefined): string => {
+    if (price === undefined || price === null) return '₦0.00';
+
+    // If price is already a number, use it. If it's a string, try to extract numeric value.
+    let num: number
+    if (typeof price === 'number') {
+      num = price
+    } else {
+      // Remove any currency symbols or non-numeric characters except dot and minus
+      const cleaned = String(price).replace(/[^0-9.\-]/g, '')
+      num = parseFloat(cleaned)
+    }
+
+    if (!isFinite(num) || isNaN(num)) return '₦0.00'
+
+    // Format with thousands separators and two decimals, using Naira symbol
+    try {
+      return `₦${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    } catch (e) {
+      return `₦${num.toFixed(2)}`
+    }
+  }

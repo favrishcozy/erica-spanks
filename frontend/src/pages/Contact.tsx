@@ -420,7 +420,7 @@ const Contact: React.FC = () => {
                 </InfoIcon>
                 <InfoContent>
                   <InfoTitle>Location</InfoTitle>
-                  <InfoText>Based in the United States</InfoText>
+                  <InfoText>Based in Lagos, Nigeria</InfoText>
                 </InfoContent>
               </InfoItem>
             </InfoCard>

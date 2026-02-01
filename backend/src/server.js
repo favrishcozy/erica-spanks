@@ -25,10 +25,15 @@ import contactRoutes from './routes/contact.js'
 import newsletterRoutes from './routes/newsletter.js'
 import adminRoutes from './routes/admin.js'
 import uploadRoutes from './routes/upload.js'
+import pointsRoutes from './routes/points.js'
+import webhooksRoutes from './routes/webhooks.js'
+import { getEmailTransporter } from './utils/emailService.js'
+import occasionsRoutes from './routes/occasions.js'
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js'
 import { notFound } from './middleware/notFound.js'
+import { initializeScheduledJobs } from './jobs/scheduledJobs.js'
 
 dotenv.config()
 
@@ -49,6 +54,10 @@ const corsOptions = {
     // Allow server-to-server or curl requests with no origin
     if (!origin) return callback(null, true);
     if (allowed.includes('*') || allowed.includes(origin)) return callback(null, true);
+    // For development, allow localhost with any port
+    if (process.env.NODE_ENV !== 'production' && origin && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
     return callback(new Error('CORS policy does not allow access from the specified Origin.'), false);
   },
   credentials: true,
@@ -66,14 +75,14 @@ const corsOptions = {
   optionsSuccessStatus: 204
 }
 
-// Rate limiting
-const limiter = rateLimit({
+// Rate limiting - disabled in development to avoid blocking during testing
+const limiter = process.env.NODE_ENV === 'production' ? rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false
-})
+}) : (req, res, next) => next() // Pass-through middleware in dev
 
 // Middleware
 app.use(helmet({
@@ -84,6 +93,21 @@ app.use(helmet({
 app.use(cors(corsOptions))
 app.use(compression())
 app.use(cookieParser())
+  // Capture raw body for webhook signature verification
+  app.use((req, res, next) => {
+    if (req.path === '/api/webhooks/paystack') {
+      let rawBody = ''
+      req.on('data', chunk => {
+        rawBody += chunk.toString()
+      })
+      req.on('end', () => {
+        req.rawBody = rawBody
+        next()
+      })
+    } else {
+      next()
+    }
+  })
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(morgan('combined'))
@@ -126,6 +150,9 @@ app.use('/api/contact', contactRoutes)
 app.use('/api/newsletter', newsletterRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/upload', uploadRoutes)
+app.use('/api/points', pointsRoutes)
+app.use('/api/webhooks', webhooksRoutes)
+app.use('/api/occasions', occasionsRoutes)
 
 // Error handling middleware
 app.use(notFound)
@@ -169,6 +196,9 @@ const getLocalIP = () => {
 const startServer = async () => {
   await connectDB()
   
+  // Initialize scheduled background jobs
+  initializeScheduledJobs()
+  
   const localIP = getLocalIP();
   
   const server = app.listen(PORT, '0.0.0.0', () => {
@@ -183,6 +213,19 @@ const startServer = async () => {
       console.log(`🔧 CORS enabled for: ${allowedOrigins.join(', ')}`)
     } catch (e) {
       console.log('🔧 CORS enabled (origins list unavailable)')
+    }
+    // Verify SMTP transporter connectivity to help diagnose email issues
+    try {
+      const transporter = getEmailTransporter()
+      if (transporter && typeof transporter.verify === 'function') {
+        transporter.verify()
+          .then(() => console.log('📧 SMTP transporter verified: ready to send emails'))
+          .catch(err => console.error('📧 SMTP transporter verification failed:', err && err.message ? err.message : err))
+      } else {
+        console.warn('📧 SMTP transporter not available for verification')
+      }
+    } catch (err) {
+      console.error('📧 Error during SMTP transporter verification:', err)
     }
   })
 

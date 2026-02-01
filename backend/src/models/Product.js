@@ -155,6 +155,10 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
   },
+  occasions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Occasion'
+  }],
   tags: [{
     type: String,
     trim: true,
@@ -212,6 +216,11 @@ const productSchema = new mongoose.Schema({
   onSale: {
     type: Boolean,
     default: false
+  },
+  stockStatus: {
+    type: String,
+    enum: ['in_stock', 'out_of_stock', 'low_stock', 'discontinued'],
+    default: 'in_stock'
   },
   visibility: {
     type: String,
@@ -323,6 +332,7 @@ productSchema.index({ 'variations.sku': 1 });
 productSchema.index({ 'rating.average': -1 });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ 'variations.price': 1 });
+productSchema.index({ occasions: 1 });
 
 // Text search index
 productSchema.index({
@@ -332,10 +342,46 @@ productSchema.index({
   tags: 'text'
 });
 
-// 🧠 Auto-generate slug from name before saving using slugify
-productSchema.pre("save", function (next) {
-  if (!this.slug && this.name) {
-    this.slug = slugify(this.name, { lower: true, strict: true });
+// 🧠 Auto-generate slug from name before validation using slugify
+// Use `pre('validate')` so the slug is available during schema validation
+productSchema.pre('validate', async function(next) {
+  try {
+    if (!this.slug && this.name) {
+      let baseSlug = slugify(this.name, { lower: true, strict: true });
+      let slug = baseSlug;
+      let counter = 1;
+      
+      // Check if slug already exists (excluding current document if updating)
+      while (true) {
+        const query = { slug };
+        
+        // If this is an update (document has _id), exclude it from the check
+        if (this._id) {
+          query._id = { $ne: this._id };
+        }
+        
+        const existingProduct = await this.constructor.findOne(query).select('_id').lean();
+        
+        if (!existingProduct) {
+          // Slug is unique, use it
+          break;
+        }
+        
+        // Slug exists, try with a suffix
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+        
+        // Safety check to prevent infinite loop
+        if (counter > 1000) {
+          throw new Error('Could not generate unique slug after 1000 attempts');
+        }
+      }
+      
+      this.slug = slug;
+    }
+  } catch (e) {
+    // swallow slug generation errors and let validation handle missing slug
+    console.error('Slug generation failed:', e);
   }
   next();
 });
@@ -355,6 +401,9 @@ productSchema.pre('save', function(next) {
   
   // Update onSale based on variations
   this.onSale = this.variations.some(v => v.compareAtPrice && v.price < v.compareAtPrice);
+  
+  // Auto-update stock status
+  this.updateStockStatus();
   
   next();
 });
@@ -402,6 +451,36 @@ productSchema.methods.getDiscountPercentage = function() {
 // Static method to find featured products
 productSchema.statics.findFeatured = function() {
   return this.find({ isFeatured: true, isActive: true, visibility: 'public' });
+};
+
+// Update stock status based on inventory
+productSchema.methods.updateStockStatus = function() {
+  if (!this.isActive) {
+    this.stockStatus = 'discontinued';
+    return;
+  }
+
+  const totalInventory = this.totalInventory;
+  const hasStock = this.inStock;
+  const lowStockThreshold = Math.min(...this.variations.map(v => v.inventory.lowStockThreshold || 5));
+  
+  if (totalInventory === 0) {
+    this.stockStatus = 'out_of_stock';
+  } else if (totalInventory <= lowStockThreshold) {
+    this.stockStatus = 'low_stock';
+  } else {
+    this.stockStatus = 'in_stock';
+  }
+  
+  return this.stockStatus;
+};
+
+// Check if product can be ordered
+productSchema.methods.canBeOrdered = function() {
+  return this.isActive && 
+         this.visibility === 'public' && 
+         this.stockStatus !== 'out_of_stock' && 
+         this.stockStatus !== 'discontinued';
 };
 
 // Static method to find new arrivals

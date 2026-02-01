@@ -1,8 +1,13 @@
 // pages/checkout.tsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
+import { orderAPI } from '../services/api'
+import { productAPI } from '../services/api'
+import toast from 'react-hot-toast'
+import PointsRedemptionWidget from '../components/PointsRedemptionWidget'
+import paystackLogo from '../images/paystack_logo.jpeg'
 
 // Animations
 const fadeIn = keyframes`
@@ -104,11 +109,11 @@ const Label = styled.label`
   font-size: 0.95rem;
 `
 
-const Input = styled.input<{ hasError?: boolean }>`
+const Input = styled.input<{ $hasError?: boolean }>`
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid ${({ theme, hasError }) => 
-    hasError ? theme.colors.error : theme.colors.border};
+  border: 2px solid ${({ theme, $hasError }) => 
+    $hasError ? theme.colors.error : theme.colors.border};
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
@@ -116,10 +121,10 @@ const Input = styled.input<{ hasError?: boolean }>`
 
   &:focus {
     outline: none;
-    border-color: ${({ theme, hasError }) => 
-      hasError ? theme.colors.error : theme.colors.primary};
-    box-shadow: 0 0 0 3px ${({ theme, hasError }) => 
-      hasError ? theme.colors.error + '20' : theme.colors.primary + '20'};
+    border-color: ${({ theme, $hasError }) => 
+      $hasError ? theme.colors.error : theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme, $hasError }) => 
+      $hasError ? theme.colors.error + '20' : theme.colors.primary + '20'};
   }
 
   &::placeholder {
@@ -127,11 +132,11 @@ const Input = styled.input<{ hasError?: boolean }>`
   }
 `
 
-const Select = styled.select<{ hasError?: boolean }>`
+const Select = styled.select<{ $hasError?: boolean }>`
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid ${({ theme, hasError }) => 
-    hasError ? theme.colors.error : theme.colors.border};
+  border: 2px solid ${({ theme, $hasError }) => 
+    $hasError ? theme.colors.error : theme.colors.border};
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
@@ -140,10 +145,10 @@ const Select = styled.select<{ hasError?: boolean }>`
 
   &:focus {
     outline: none;
-    border-color: ${({ theme, hasError }) => 
-      hasError ? theme.colors.error : theme.colors.primary};
-    box-shadow: 0 0 0 3px ${({ theme, hasError }) => 
-      hasError ? theme.colors.error + '20' : theme.colors.primary + '20'};
+    border-color: ${({ theme, $hasError }) => 
+      $hasError ? theme.colors.error : theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme, $hasError }) => 
+      $hasError ? theme.colors.error + '20' : theme.colors.primary + '20'};
   }
 `
 
@@ -167,25 +172,24 @@ const PaymentMethod = styled.label<{ selected: boolean }>`
   flex-direction: column;
   align-items: center;
   padding: ${({ theme }) => theme.spacing.md};
-  border: 2px solid ${({ theme, selected }) => 
+  border: 1px solid ${({ theme, selected }) => 
     selected ? theme.colors.primary : theme.colors.border};
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   background: ${({ theme, selected }) => 
-    selected ? theme.colors.primary + '10' : 'white'};
+    selected ? theme.colors.primary + '05' : 'white'};
 
   &:hover {
     border-color: ${({ theme }) => theme.colors.primary};
     transform: translateY(-2px);
   }
 
-  svg {
-    width: 32px;
-    height: 32px;
+  img {
+    width: 48px;
+    height: 48px;
     margin-bottom: ${({ theme }) => theme.spacing.xs};
-    color: ${({ theme, selected }) => 
-      selected ? theme.colors.primary : theme.colors.textLight};
+    object-fit: contain;
   }
 
   span {
@@ -259,17 +263,17 @@ const ItemPrice = styled.div`
   color: ${({ theme }) => theme.colors.primary};
 `
 
-const SummaryRow = styled.div<{ highlight?: boolean }>`
+const SummaryRow = styled.div<{ $highlight?: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${({ theme }) => theme.spacing.sm} 0;
-  border-bottom: ${({ highlight, theme }) => 
-    highlight ? '2px' : '1px'} solid ${({ theme }) => theme.colors.border};
-  font-weight: ${({ highlight }) => highlight ? '700' : '400'};
-  font-size: ${({ highlight }) => highlight ? '1.2rem' : '1rem'};
-  color: ${({ highlight, theme }) => 
-    highlight ? theme.colors.primaryDark : 'inherit'};
+  border-bottom: ${({ $highlight, theme }) => 
+    $highlight ? '2px' : '1px'} solid ${({ theme }) => theme.colors.border};
+  font-weight: ${({ $highlight }) => $highlight ? '700' : '400'};
+  font-size: ${({ $highlight }) => $highlight ? '1.2rem' : '1rem'};
+  color: ${({ $highlight, theme }) => 
+    $highlight ? theme.colors.primaryDark : 'inherit'};
 
   &:last-child {
     border-bottom: none;
@@ -359,16 +363,72 @@ const Checkout: React.FC = () => {
     state: '',
     postalCode: '',
     country: 'Nigeria',
-    paymentMethod: ''
+    paymentMethod: 'paystack'
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pointsReservation, setPointsReservation] = useState<any>(null)
 
   const totalPrice = getTotalPrice()
   const totalItems = getTotalItems()
-  const shippingFee = totalPrice > 50000 ? 0 : 1500 // Free shipping over ₦50,000
-  const finalTotal = totalPrice + shippingFee
+  const shippingFee = totalPrice > 100000 ? 0 : 1500 // Free shipping over ₦100,000
+  const discountAmount = pointsReservation?.discount_amount || 0
+  const finalTotal = totalPrice + shippingFee - discountAmount
+
+  // Handle payment verification after returning from Paystack
+  useEffect(() => {
+    const verifyPayment = async () => {
+      const reference = new URLSearchParams(window.location.search).get('reference')
+      const orderId = localStorage.getItem('pendingOrderId')
+
+      if (reference && orderId) {
+        try {
+          toast.loading('Verifying payment...')
+          
+          // Verify payment with backend
+          const verifyResponse = await productAPI.post(`/api/orders/${orderId}/verify-payment`, {
+            reference
+          })
+
+          const { orderId: verifiedOrderId, status, pointsEarned } = verifyResponse.data
+
+          toast.dismiss()
+          
+          if (status === 'confirmed') {
+            toast.success(`✅ Payment verified! Order #${verifiedOrderId} confirmed`)
+            
+            if (pointsEarned) {
+              toast.success(`🎉 You earned ${pointsEarned} points!`)
+            }
+            
+            // Clear cart and localStorage
+            clearCart()
+            localStorage.removeItem('pendingOrderId')
+            
+            // Redirect to confirmation page
+            navigate(`/order-confirmation/${verifiedOrderId}`)
+          } else {
+            throw new Error(`Order status: ${status}`)
+          }
+        } catch (error: any) {
+          toast.dismiss()
+          console.error('Payment verification error:', error)
+          
+          const errorMessage = error.response?.data?.error || 
+                              error.message || 
+                              'Payment verification failed. Please contact support.'
+          
+          toast.error(errorMessage)
+          
+          // Don't redirect - let user stay on checkout
+          window.history.replaceState({}, '', '/checkout')
+        }
+      }
+    }
+
+    verifyPayment()
+  }, [])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -395,32 +455,99 @@ const Checkout: React.FC = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
+
+    // Validate that all items have size and color
+    const incompleteItems = items.filter(item => !item.size || !item.color)
+    if (incompleteItems.length > 0) {
+      toast.error('Please select size and color for all items before checkout')
+      navigate('/cart')
+      return
+    }
 
     setIsSubmitting(true)
 
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      alert(`🎉 Order placed successfully!\nTotal: ₦${finalTotal.toLocaleString()}`)
-      clearCart()
-      navigate('/order-confirmation')
-    } catch (error) {
-      alert('There was an error processing your order. Please try again.')
+      // Create order on backend
+      const orderData: any = {
+        shipping: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.postalCode,
+          country: formData.country
+        },
+        items: items.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+          price: item.price
+        })),
+        paymentMethod: formData.paymentMethod
+      }
+
+      // Include points reservation if present
+      if (pointsReservation) {
+        orderData.pointsReservation = {
+          reservation_id: pointsReservation.reservation_id,
+          tier_id: pointsReservation.tier_id
+        }
+      }
+
+      const orderResponse = await orderAPI.createOrder(orderData)
+
+      console.log('Order created successfully:', orderResponse)
+
+      const { orderId, paymentInitialization } = orderResponse.data
+
+      console.log('Order ID:', orderId)
+      console.log('Payment Initialization:', paymentInitialization)
+
+      // If payment method is Paystack, redirect to Paystack payment
+      if (formData.paymentMethod === 'paystack') {
+        if (paymentInitialization?.authorizationUrl) {
+          console.log('🔗 Redirecting to Paystack URL:', paymentInitialization.authorizationUrl)
+          
+          // Store orderId in localStorage for verification after payment
+          localStorage.setItem('pendingOrderId', orderId)
+
+          toast.success('Redirecting to payment...')
+
+          // Redirect to Paystack payment page
+          window.location.href = paymentInitialization.authorizationUrl
+        } else {
+          console.error('❌ Missing authorizationUrl in payment initialization:', paymentInitialization)
+          throw new Error('Failed to initialize Paystack payment - missing authorization URL')
+        }
+      } else {
+        // For other payment methods, show success and clear cart
+        toast.success(` Order #${orderId} created successfully!`)
+        clearCart()
+        navigate(`/order-confirmation/${orderId}`)
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error)
+
+      const errorMessage = error.response?.data?.error ||
+                          error.message ||
+                          'There was an error processing your order. Please try again.'
+
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const paymentMethods = [
-    { id: 'card', name: 'Credit Card', icon: '💳' },
-    { id: 'paystack', name: 'Paystack', icon: '⚡' },
-    { id: 'bank', name: 'Bank Transfer', icon: '🏦' },
-    { id: 'cash', name: 'Cash on Delivery', icon: '💰' }
+    { id: 'paystack', name: 'Paystack' }
   ]
 
   if (items.length === 0) {
@@ -446,7 +573,7 @@ const Checkout: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <FormSection>
-          <SectionTitle>📦 Shipping Information</SectionTitle>
+          <SectionTitle>Shipping Information</SectionTitle>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <FormGroup>
@@ -455,7 +582,7 @@ const Checkout: React.FC = () => {
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 placeholder="John"
-                hasError={!!errors.firstName}
+                $hasError={!!errors.firstName}
               />
               {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
             </FormGroup>
@@ -466,7 +593,7 @@ const Checkout: React.FC = () => {
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
                 placeholder="Doe"
-                hasError={!!errors.lastName}
+                $hasError={!!errors.lastName}
               />
               {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
             </FormGroup>
@@ -479,7 +606,7 @@ const Checkout: React.FC = () => {
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="john.doe@example.com"
-              hasError={!!errors.email}
+              $hasError={!!errors.email}
             />
             {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
           </FormGroup>
@@ -491,7 +618,7 @@ const Checkout: React.FC = () => {
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="+234 800 000 0000"
-              hasError={!!errors.phone}
+              $hasError={!!errors.phone}
             />
             {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
           </FormGroup>
@@ -502,7 +629,7 @@ const Checkout: React.FC = () => {
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
               placeholder="123 Main Street"
-              hasError={!!errors.address}
+              $hasError={!!errors.address}
             />
             {errors.address && <ErrorMessage>{errors.address}</ErrorMessage>}
           </FormGroup>
@@ -514,7 +641,7 @@ const Checkout: React.FC = () => {
                 value={formData.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 placeholder="Lagos"
-                hasError={!!errors.city}
+                $hasError={!!errors.city}
               />
               {errors.city && <ErrorMessage>{errors.city}</ErrorMessage>}
             </FormGroup>
@@ -525,7 +652,7 @@ const Checkout: React.FC = () => {
                 value={formData.state}
                 onChange={(e) => handleInputChange('state', e.target.value)}
                 placeholder="Lagos State"
-                hasError={!!errors.state}
+                $hasError={!!errors.state}
               />
               {errors.state && <ErrorMessage>{errors.state}</ErrorMessage>}
             </FormGroup>
@@ -555,7 +682,7 @@ const Checkout: React.FC = () => {
         </FormSection>
 
         <FormSection>
-          <SectionTitle>💳 Payment Method</SectionTitle>
+          <SectionTitle>Payment Method</SectionTitle>
           
           <FormGroup>
             <Label>Select Payment Method *</Label>
@@ -572,8 +699,8 @@ const Checkout: React.FC = () => {
                     checked={formData.paymentMethod === method.id}
                     onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                   />
-                  <span style={{ fontSize: '24px' }}>{method.icon}</span>
-                  <span>{method.name}</span>
+<img src={paystackLogo} alt="Paystack" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+<span>{method.name}</span>
                 </PaymentMethod>
               ))}
             </PaymentMethods>
@@ -610,11 +737,17 @@ const Checkout: React.FC = () => {
           ))}
         </div>
 
+        {/* Points Redemption Widget */}
+        <PointsRedemptionWidget
+          cartSubtotal={totalPrice}
+          onReservationCreated={(reservation) => setPointsReservation(reservation)}
+        />
+
         <SummaryRow>
           <span>Subtotal ({totalItems} items):</span>
           <span>₦{totalPrice.toLocaleString()}</span>
         </SummaryRow>
-        
+
         <SummaryRow>
           <span>Shipping:</span>
           <span>
@@ -625,8 +758,15 @@ const Checkout: React.FC = () => {
             )}
           </span>
         </SummaryRow>
-        
-        <SummaryRow highlight>
+
+        {discountAmount > 0 && (
+          <SummaryRow style={{ color: '#28a745' }}>
+            <span>Points Discount:</span>
+            <span>-₦{discountAmount.toLocaleString()}</span>
+          </SummaryRow>
+        )}
+
+        <SummaryRow $highlight>
           <span>Total:</span>
           <span>₦{finalTotal.toLocaleString()}</span>
         </SummaryRow>

@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { Heart, ShoppingBag, Eye, Star } from 'lucide-react'
-import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
+import { useWishlistStore } from '../../stores/wishlistStore'
+import toast from 'react-hot-toast'
 import { getCategoryName, getMainImage, calculateDiscount, formatPrice, validateProduct, Product } from '../../utils/productHelpers'
+import QuickViewModal from './QuickViewModal'
 
 interface ProductCardProps {
   product: Product
@@ -372,21 +374,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
 
   const [isHovered, setIsHovered] = useState(false)
   const [selectedColor, setSelectedColor] = useState(colors?.[0] || '')
-  const { user, isInWishlist, addToWishlist, removeFromWishlist } = useAuthStore()
+  const [quickViewOpen, setQuickViewOpen] = useState(false)
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
   const { addItem } = useCartStore()
 
-  const isWishlisted = user ? isInWishlist(productId) : false
+  const isWishlisted = isInWishlist(productId)
   const formattedPrice = formatPrice(price)
   const formattedOriginalPrice = originalPrice ? formatPrice(originalPrice) : null
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    if (!user) {
-      // Redirect to login or show login modal
-      return
-    }
     
     if (isWishlisted) {
       removeFromWishlist(productId)
@@ -398,31 +396,50 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
   const handleQuickShop = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    addItem({
-      id: productId,
-      name: name,
-      price: price,
-      image: mainImage,
-      size: sizes?.[0] || 'M',
-      color: selectedColor || 'Default',
-    })
+    const variations = (product as any).variations || []
+    if (variations.length === 1) {
+      const v = variations[0]
+      addItem({
+        id: productId,
+        name: name,
+        price: v.price || price,
+        image: mainImage,
+        size: v.size,
+        color: v.color,
+        quantity: 1,
+        variationId: v._id || `${v.color}-${v.size}`
+      })
+      toast.success(`${name} added to cart!`)
+    } else if (variations.length > 1) {
+      // Add placeholder item; user will select size/color in cart
+      const prices = variations.map((v: any) => Number(v.price) || 0)
+      const minPrice = prices.length > 0 ? Math.min(...prices) : (price || 0)
+      addItem({
+        id: productId,
+        name: name,
+        price: minPrice,
+        image: mainImage,
+        quantity: 1
+      })
+      toast.success(`${name} added to cart — select size & color in your cart before checkout`)
+    }
   }
 
-  const handleColorChange = (color: string, e: React.MouseEvent) => {
+  const handleColorChange = (color: string, e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
     setSelectedColor(color)
   }
 
   return (
-    <Card 
-      $variant={variant}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-  <Link to={`/products/${slug || productId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-  <ImageContainer $variant={variant}>
+    <>
+      <Card 
+        $variant={variant}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+    <Link to={`/product/${productId || slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <ImageContainer $variant={variant}>
           {/* Render video when the main image is a video file */}
             <ProductImage 
               src={
@@ -467,7 +484,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
             >
               <Heart size={16} fill={isWishlisted ? 'currentColor' : 'none'} />
             </ActionButton>
-            <ActionButton title="Quick view">
+            <ActionButton 
+              onClick={() => setQuickViewOpen(true)}
+              title="Quick view"
+            >
               <Eye size={16} />
             </ActionButton>
           </QuickActions>
@@ -476,7 +496,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
             <QuickShop $isVisible={isHovered}>
               <QuickShopButton onClick={handleQuickShop}>
                 <ShoppingBag size={16} />
-                Quick Add
+                Add to Cart
               </QuickShopButton>
             </QuickShop>
           )}
@@ -539,6 +559,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
         </ProductInfo>
       </Link>
     </Card>
+    
+    <QuickViewModal 
+      product={validatedProduct} 
+      isOpen={quickViewOpen} 
+      onClose={() => setQuickViewOpen(false)} 
+    />
+    </>
   )
 }
 

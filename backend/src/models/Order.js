@@ -101,7 +101,7 @@ const shippingAddressSchema = new mongoose.Schema({
 const paymentInfoSchema = new mongoose.Schema({
   method: {
     type: String,
-    enum: ['stripe', 'paypal', 'apple_pay', 'google_pay'],
+    enum: ['stripe', 'paypal', 'apple_pay', 'google_pay', 'card', 'paystack', 'bank', 'cash'],
     required: true
   },
   transactionId: {
@@ -192,7 +192,6 @@ const shippingInfoSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
-    required: true,
     unique: true
   },
   user: {
@@ -221,15 +220,15 @@ const orderSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    timestamp: {
+    updatedAt: {
       type: Date,
       default: Date.now
     },
-    note: String,
     updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    }
+      type: String,
+      required: true
+    },
+    note: String
   }],
   shippingAddress: shippingAddressSchema,
   billingAddress: shippingAddressSchema,
@@ -272,6 +271,27 @@ const orderSchema = new mongoose.Schema({
       enum: ['percentage', 'fixed']
     },
     discountValue: Number
+  },
+  pointsRedemption: {
+    reservation_id: mongoose.Schema.Types.ObjectId,
+    points_redeemed: {
+      type: Number,
+      min: 0
+    },
+    discount_applied: {
+      type: Boolean,
+      default: false
+    },
+    appliedAt: Date
+  },
+  pointsAwarded: {
+    type: Boolean,
+    default: false
+  },
+  pointsEarned: {
+    type: Number,
+    min: 0,
+    default: 0
   },
   notes: {
     customer: {
@@ -330,7 +350,12 @@ const orderSchema = new mongoose.Schema({
 
 // Virtuals
 orderSchema.virtual('totalItems').get(function() {
-  return this.items.reduce((total, item) => total + item.quantity, 0)
+  try {
+    return this.items ? this.items.reduce((total, item) => total + (item.quantity || 0), 0) : 0
+  } catch (err) {
+    console.warn('Error in totalItems virtual:', err.message)
+    return 0
+  }
 })
 
 orderSchema.virtual('canBeCancelled').get(function() {
@@ -338,16 +363,29 @@ orderSchema.virtual('canBeCancelled').get(function() {
 })
 
 orderSchema.virtual('canBeReturned').get(function() {
-  return ['delivered'].includes(this.status) && 
-         this.deliveredAt && 
-         (Date.now() - this.deliveredAt.getTime()) < (30 * 24 * 60 * 60 * 1000) // 30 days
+  try {
+    if (this.status !== 'delivered') return false
+    if (!this.deliveredAt) return false
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
+    return (Date.now() - this.deliveredAt.getTime()) < thirtyDaysMs
+  } catch (err) {
+    console.warn('Error in canBeReturned virtual:', err.message)
+    return false
+  }
 })
 
 orderSchema.virtual('isOverdue').get(function() {
-  if (!this.shippingInfo.estimatedDelivery || this.status === 'delivered') return false
-  const maxDeliveryDate = new Date(this.createdAt)
-  maxDeliveryDate.setDate(maxDeliveryDate.getDate() + this.shippingInfo.estimatedDelivery.max)
-  return Date.now() > maxDeliveryDate.getTime()
+  try {
+    if (!this.shippingInfo || !this.shippingInfo.estimatedDelivery || !this.shippingInfo.estimatedDelivery.max || this.status === 'delivered') {
+      return false
+    }
+    const maxDeliveryDate = new Date(this.createdAt)
+    maxDeliveryDate.setDate(maxDeliveryDate.getDate() + this.shippingInfo.estimatedDelivery.max)
+    return Date.now() > maxDeliveryDate.getTime()
+  } catch (err) {
+    console.warn('Error in isOverdue virtual:', err.message)
+    return false
+  }
 })
 
 // Indexes

@@ -11,13 +11,16 @@ export const protect = async (req, res, next) => {
     // Check for token in Authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1]
+      console.log('Found token in Authorization header')
     }
     // Check for token in cookies (for web)
     else if (req.cookies && req.cookies.token) {
       token = req.cookies.token
+      console.log('Found token in cookies')
     }
 
     if (!token) {
+      console.log('No token found in request')
       return res.status(401).json({
         success: false,
         error: 'Not authorized. No token provided.'
@@ -27,11 +30,13 @@ export const protect = async (req, res, next) => {
     try {
       // Verify token
       const decoded = verifyToken(token)
+      console.log('Token verified, userId:', decoded.userId)
       
       // Get user from token (password is automatically excluded due to select: false)
       const user = await User.findById(decoded.userId)
       
       if (!user) {
+        console.log('User not found in database for userId:', decoded.userId)
         return res.status(401).json({
           success: false,
           error: 'Not authorized. User not found.'
@@ -39,16 +44,19 @@ export const protect = async (req, res, next) => {
       }
 
       if (!user.isActive) {
+        console.log('User is not active:', user.email)
         return res.status(401).json({
           success: false,
           error: 'Not authorized. Account is deactivated.'
         })
       }
 
+      console.log('User authenticated:', user.email, 'role:', user.role)
       // Attach user to request
       req.user = user
       next()
     } catch (tokenError) {
+      console.log('Token verification failed:', tokenError.message)
       return res.status(401).json({
         success: false,
         error: 'Not authorized. Invalid token.'
@@ -68,7 +76,14 @@ export const protect = async (req, res, next) => {
  */
 export const admin = (req, res, next) => {
   try {
+    console.log('Admin middleware check:')
+    console.log('  req.user exists:', !!req.user)
+    console.log('  req.user?.email:', req.user?.email)
+    console.log('  req.user?.role:', req.user?.role)
+    console.log('  role === admin:', req.user?.role === 'admin')
+    
     if (!req.user) {
+      console.log('  ✗ No user attached to request')
       return res.status(401).json({
         success: false,
         error: 'Not authorized. Please authenticate first.'
@@ -76,12 +91,14 @@ export const admin = (req, res, next) => {
     }
 
     if (req.user.role !== 'admin') {
+      console.log('  ✗ User is not admin, role is:', req.user.role)
       return res.status(403).json({
         success: false,
         error: 'Not authorized. Admin access required.'
       })
     }
 
+    console.log('  ✓ User is admin, proceeding')
     next()
   } catch (error) {
     console.error('Admin middleware error:', error)

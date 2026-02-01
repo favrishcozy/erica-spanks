@@ -1,62 +1,154 @@
-### Node
-node_modules/
-**/node_modules/
-/.pnp/
-/.pnp.js
+# Ignore all markdown files in root
+*.md
 
-### Build outputs
-dist/
-build/
-**/dist/
-**/build/
-out/
+# Ignore shell scripts in root
+*.sh
 
-### Vite / Next / CRA
-.vite/
-.next/
-/.turbo/
+*.txt
 
-### Typescript
-*.tsbuildinfo
+# Ignore hidden files in root
+.hushlogin
 
-### Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# Ignore configuration files in root
+vercel.json
 
-### Env files
-.env
-.env.*
-.local
+# Ignore IDE files
+.vscode/
+.idea/
 
-### OS
+# Ignore OS files
 .DS_Store
 Thumbs.db
 
-### IDEs
-.idea/
-.vscode/
-/.vscode/
-.history/
+# Ignore logs
+*.log
 
-### Temporary and system folders
-tmp/
-temp/
-cache/
-.cache/
-/.sass-cache
+# Ignore environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example
 
-### Uploads and generated media
-tmp/uploads/
-public/uploads/
+# Ignore dependency directories
+node_modules/
+bower_components/
 
-### Mac/
-.DS_Store
+# Ignore build outputs
+dist/
+build/
+out/
 
-### Misc
+# Ignore coverage reports
 coverage/
 .nyc_output/
-/.parcel-cache/
+
+# Ignore temporary files
+*.tmp
+*.temp
+.cache/
+
+# Ignore backup files
+*.bak
+*.backup
+
+# Ignore database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore IDE workspace files
+*.code-workspace
+
+# Ignore package manager lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore compiled TypeScript files
+*.js
+*.js.map
+
+# Ignore uploaded files
+uploads/
+public/uploads/
+
+# Ignore test reports
+junit.xml
+test-results/
+coverage/
+
+# Ignore documentation generated files
+docs/
+documentation/
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+
+# Ignore environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore dependency directories
+node_modules/
+bower_components/
+
+# Ignore build outputs
+dist/
+build/
+out/
+
+# Ignore coverage reports
+coverage/
+.nyc_output/
+
+# Ignore temporary files
+*.tmp
+*.temp
+.cache/
+
+# Ignore backup files
+*.bak
+*.backup
+
+# Ignore database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore IDE workspace files
+*.code-workspace
+
+# Ignore package manager lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore compiled TypeScript files
+*.js
+*.js.map
+
+# Ignore uploaded files
+uploads/
+public/uploads/
+
+# Ignore test reports
+junit.xml
+test-results/
+coverage/
+
+# Ignore documentation generated files
+docs/
+documentation/

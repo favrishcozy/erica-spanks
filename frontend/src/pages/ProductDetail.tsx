@@ -3,8 +3,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { Heart, ShoppingBag, Star, Truck, RotateCcw, Shield, Info, ChevronLeft, ChevronRight, X, Plus, Minus } from 'lucide-react'
 import { useCartStore } from '../stores/cartStore'
+import { useWishlistStore } from '../stores/wishlistStore'
 import toast from 'react-hot-toast'
 import { productAPI } from '../services/api'
+import { formatPrice } from '../utils/currency'
 
 // Types
 interface Product {
@@ -665,10 +667,191 @@ const RelatedInfo = styled.div`
   }
 `
 
+const RatingSection = styled.div`
+  background: ${({ theme }) => theme.colors.cream};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  padding: ${({ theme }) => theme.spacing.xl};
+  margin-top: ${({ theme }) => theme.spacing['2xl']};
+  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+`
+
+const RatingHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  padding-bottom: ${({ theme }) => theme.spacing.lg};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.mediumGray};
+`
+
+const RatingScore = styled.div`
+  text-align: center;
+  
+  .score {
+    font-size: 48px;
+    font-weight: ${({ theme }) => theme.fontWeights.bold};
+    color: ${({ theme }) => theme.colors.primary};
+  }
+  
+  .stars {
+    color: #ffc107;
+    font-size: 20px;
+    margin: 4px 0;
+  }
+  
+  .count {
+    font-size: ${({ theme }) => theme.fontSizes.sm};
+    color: ${({ theme }) => theme.colors.darkGray};
+  }
+`
+
+const ReviewForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.xl};
+`
+
+const RatingInput = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.md};
+  align-items: center;
+  
+  label {
+    font-weight: ${({ theme }) => theme.fontWeights.semibold};
+    color: ${({ theme }) => theme.colors.black};
+  }
+  
+  .stars {
+    display: flex;
+    gap: 8px;
+    cursor: pointer;
+  }
+  
+  .star {
+    font-size: 28px;
+    cursor: pointer;
+    color: #ddd;
+    transition: color 0.2s;
+    
+    &:hover,
+    &.${'active'} {
+      color: #ffc107;
+    }
+  }
+`
+
+const FormInput = styled.input`
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing.md};
+  border: 1px solid ${({ theme }) => theme.colors.mediumGray};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  font-family: inherit;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  }
+`
+
+const FormTextarea = styled.textarea`
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing.md};
+  border: 1px solid ${({ theme }) => theme.colors.mediumGray};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  font-family: inherit;
+  min-height: 120px;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  }
+`
+
+const SubmitRatingBtn = styled.button`
+  background: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.white};
+  border: none;
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  cursor: pointer;
+  transition: ${({ theme }) => theme.transitions.normal};
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`
+
+const ReviewList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }) => theme.spacing.xl};
+`
+
+const ReviewCard = styled.div`
+  background: ${({ theme }) => theme.colors.white};
+  border: 1px solid ${({ theme }) => theme.colors.mediumGray};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.lg};
+  
+  .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: ${({ theme }) => theme.spacing.md};
+  }
+  
+  .reviewer-info {
+    h4 {
+      font-weight: ${({ theme }) => theme.fontWeights.semibold};
+      color: ${({ theme }) => theme.colors.black};
+      margin: 0;
+    }
+    
+    p {
+      font-size: ${({ theme }) => theme.fontSizes.sm};
+      color: ${({ theme }) => theme.colors.darkGray};
+      margin: 4px 0 0 0;
+    }
+  }
+  
+  .stars {
+    color: #ffc107;
+    font-size: 16px;
+  }
+  
+  .review-content {
+    h5 {
+      font-weight: ${({ theme }) => theme.fontWeights.semibold};
+      color: ${({ theme }) => theme.colors.black};
+      margin: 0 0 8px 0;
+    }
+    
+    p {
+      color: ${({ theme }) => theme.colors.darkGray};
+      margin: 0;
+      line-height: 1.6;
+    }
+  }
+`
+
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { addItem } = useCartStore()
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
   
   // State
   const [product, setProduct] = useState<Product | null>(null)
@@ -680,7 +863,9 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [showSizeGuide, setShowSizeGuide] = useState(false)
-  const [wishlist, setWishlist] = useState<string[]>([])
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewForm, setReviewForm] = useState({ rating: 0, title: '', comment: '' })
+  const [submitingReview, setSubmittingReview] = useState(false)
   
   // Size guide data
   const sizeGuide: SizeGuide[] = [
@@ -705,11 +890,7 @@ const ProductDetail: React.FC = () => {
           setProduct(response.data)
           
           // Set default selections
-          if (response.data.variations && response.data.variations.length > 0) {
-            const firstVariation = response.data.variations[0]
-            setSelectedColor(firstVariation.color)
-            setSelectedSize(firstVariation.size)
-          }
+          // Do NOT auto-select color/size: require explicit user selection
         } else {
           setError(response.error || 'Failed to load product')
         }
@@ -726,18 +907,30 @@ const ProductDetail: React.FC = () => {
     }
   }, [id])
 
-  // Load wishlist from localStorage on component mount
+  // Fetch reviews
   useEffect(() => {
-    const savedWishlist = localStorage.getItem('wishlist')
-    if (savedWishlist) {
-      setWishlist(JSON.parse(savedWishlist))
+    const fetchReviews = async () => {
+      try {
+        const response = await productAPI.getProductReviews(id!)
+        if (response.success) {
+          setReviews(response.data.reviews || [])
+        }
+      } catch (err) {
+        console.error('Error fetching reviews:', err)
+      }
     }
-  }, [])
 
-  // Save wishlist to localStorage whenever it changes
+    if (id) {
+      fetchReviews()
+    }
+  }, [id])
+
+  // Reset thumbnail index when images or selection changes (MUST be before conditional returns)
   useEffect(() => {
-    localStorage.setItem('wishlist', JSON.stringify(wishlist))
-  }, [wishlist])
+    if (product) {
+      setSelectedImageIndex(0)
+    }
+  }, [product?.variations, selectedColor, selectedSize])
 
   if (loading) {
     return (
@@ -772,60 +965,114 @@ const ProductDetail: React.FC = () => {
     )
   }
   
-  const currentVariation = product.variations.find(v => v.color === selectedColor && v.size === selectedSize) || product.variations[0]
-  const availableSizes = [...new Set(
-    product.variations
-      .filter(v => v.color === selectedColor && v.inventory.quantity > 0)
-      .map(v => v.size)
-  )]
-  const availableColors = [...new Set(
+  // Determine current variation:
+  // - If both color and size selected => exact match
+  // - If only color selected => first variation matching color
+  // - Otherwise fallback to first variation
+  const currentVariation = (selectedColor && selectedSize)
+    ? product.variations.find(v => v.color === selectedColor && v.size === selectedSize)
+    : selectedColor
+      ? product.variations.find(v => v.color === selectedColor)
+      : product.variations[0]
+
+  // All possible sizes and colors
+  const allSizes = [...new Set(product.variations.map(v => v.size))]
+  const availableColors = [...new Map(
     product.variations
       .filter(v => v.inventory.quantity > 0)
-      .map(v => ({ name: v.color, code: v.colorCode }))
-  )]
-  const currentImages = currentVariation?.images || []
+      .map(v => [v.color, { name: v.color, code: v.colorCode }])
+  ).values()]
+
+  // Current images: prefer selected variation images (or first match by color), otherwise fallback
+  const currentImages = (currentVariation && currentVariation.images) || product.variations[0]?.images || []
+
   const discount = currentVariation?.compareAtPrice ? 
     Math.round(((currentVariation.compareAtPrice - currentVariation.price) / currentVariation.compareAtPrice) * 100) : 0
-  const isInWishlist = wishlist.includes(product._id)
+  const inWishlist = isInWishlist(product._id)
   
   const handleAddToCart = () => {
-    if (!currentVariation) return
-    
+    // Require explicit color and size selection
+    if (!selectedColor || !selectedSize) {
+      toast.error('Please select color and size')
+      return
+    }
+
+    const variation = product.variations.find(v => v.color === selectedColor && v.size === selectedSize)
+    if (!variation) {
+      toast.error('Selected combination not available')
+      return
+    }
+
     addItem({
       id: product._id,
       name: product.name,
-      price: currentVariation.price,
+      price: variation.price,
       image: currentImages[0]?.url || '/placeholder.jpg',
       size: selectedSize,
       color: selectedColor,
       quantity,
-      variationId: currentVariation._id || `${selectedColor}-${selectedSize}`
+      variationId: variation._id || `${selectedColor}-${selectedSize}`
     })
     toast.success(`${product.name} added to cart!`)
   }
   
   const toggleWishlist = () => {
-    setWishlist(prev => {
-      const isInList = prev.includes(product._id)
-      if (isInList) {
-        toast.success('Removed from wishlist')
-        return prev.filter(id => id !== product._id)
-      } else {
-        toast.success('Added to wishlist')
-        return [...prev, product._id]
-      }
-    })
+    if (!product) return
+    
+    if (isInWishlist(product._id)) {
+      removeFromWishlist(product._id)
+      toast.success('Removed from wishlist')
+    } else {
+      addToWishlist(product._id)
+      toast.success('Added to wishlist')
+    }
   }
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color)
-    // Reset selected size when color changes
-    const availableSizesForColor = product.variations
-      .filter(v => v.color === color && v.inventory.quantity > 0)
-      .map(v => v.size)
-    
-    if (availableSizesForColor.length > 0 && !availableSizesForColor.includes(selectedSize)) {
-      setSelectedSize(availableSizesForColor[0])
+    // If previously selected size is incompatible with new color, clear it so user must re-select
+    const hasSelectedSizeForColor = product.variations.some(v => v.color === color && v.size === selectedSize)
+    if (selectedSize && !hasSelectedSizeForColor) setSelectedSize('')
+  }
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!reviewForm.rating) {
+      toast.error('Please select a rating')
+      return
+    }
+
+    if (!reviewForm.title.trim()) {
+      toast.error('Please enter a review title')
+      return
+    }
+
+    if (!reviewForm.comment.trim()) {
+      toast.error('Please enter a review comment')
+      return
+    }
+
+    try {
+      setSubmittingReview(true)
+      const response = await productAPI.submitRating(product._id, reviewForm)
+      
+      if (response.success) {
+        toast.success('Thank you for your review!')
+        setReviewForm({ rating: 0, title: '', comment: '' })
+        
+        // Refresh reviews
+        const updatedReviews = await productAPI.getProductReviews(product._id)
+        if (updatedReviews.success) {
+          setReviews(updatedReviews.data.reviews || [])
+          setProduct(prev => prev ? { ...prev, rating: updatedReviews.data.rating } : null)
+        }
+      }
+    } catch (err) {
+      console.error('Error submitting review:', err)
+      toast.error('Failed to submit review')
+    } finally {
+      setSubmittingReview(false)
     }
   }
 
@@ -883,8 +1130,8 @@ const ProductDetail: React.FC = () => {
             <WishlistButton onClick={toggleWishlist}>
               <Heart
                 size={20}
-                fill={isInWishlist ? '#F4C2C2' : 'none'}
-                color={isInWishlist ? '#F4C2C2' : '#666666'}
+                fill={inWishlist ? '#F4C2C2' : 'none'}
+                color={inWishlist ? '#F4C2C2' : '#666666'}
               />
             </WishlistButton>
           </MainImageContainer>
@@ -911,10 +1158,10 @@ const ProductDetail: React.FC = () => {
           </ProductRating>
           
           <PriceSection>
-            <CurrentPrice>${currentVariation.price.toFixed(2)}</CurrentPrice>
+            <CurrentPrice>{formatPrice(currentVariation.price)}</CurrentPrice>
             {currentVariation.compareAtPrice && currentVariation.compareAtPrice > currentVariation.price && (
               <>
-                <OriginalPrice>${currentVariation.compareAtPrice.toFixed(2)}</OriginalPrice>
+                <OriginalPrice>{formatPrice(currentVariation.compareAtPrice)}</OriginalPrice>
                 <DiscountBadge>-{discount}% OFF</DiscountBadge>
               </>
             )}
@@ -923,15 +1170,15 @@ const ProductDetail: React.FC = () => {
           <OptionsSection>
             <OptionGroup>
               <OptionLabel>
-                Color: {selectedColor}
-              </OptionLabel>
+                  Color: {selectedColor || '—'}
+                </OptionLabel>
               <ColorOptions>
                 {availableColors.map(color => (
                   <ColorOption
                     key={color.name}
                     color={color.code}
-                    $active={selectedColor === color.name}
-                    onClick={() => handleColorChange(color.name)}
+                      $active={selectedColor === color.name}
+                      onClick={() => handleColorChange(color.name)}
                     title={color.name}
                   />
                 ))}
@@ -939,30 +1186,33 @@ const ProductDetail: React.FC = () => {
             </OptionGroup>
             
             <OptionGroup>
-              <OptionLabel>
-                Size: {selectedSize}
-                <SizeGuideLink onClick={() => setShowSizeGuide(true)}>
-                  Size Guide
-                </SizeGuideLink>
-              </OptionLabel>
-              <SizeOptions>
-                {availableSizes.map(size => {
-                  const sizeVariation = product.variations.find(v => v.size === size && v.color === selectedColor)
-                  const unavailable = !sizeVariation || sizeVariation.inventory.quantity === 0
-                  
-                  return (
-                    <SizeOption
-                      key={size}
-                      $active={selectedSize === size}
-                      $unavailable={unavailable}
-                      disabled={unavailable}
-                      onClick={() => !unavailable && setSelectedSize(size)}
-                    >
-                      {size}
-                    </SizeOption>
-                  )
-                })}
-              </SizeOptions>
+                <OptionLabel>
+                  Size: {selectedSize || '—'}
+                  <SizeGuideLink onClick={() => setShowSizeGuide(true)}>
+                    Size Guide
+                  </SizeGuideLink>
+                </OptionLabel>
+                <SizeOptions>
+                  {allSizes.map(size => {
+                    // If a color is selected, only sizes available for that color are enabled
+                    const sizeAvailableForColor = selectedColor
+                      ? product.variations.some(v => v.size === size && v.color === selectedColor && v.inventory.quantity > 0)
+                      : product.variations.some(v => v.size === size && v.inventory.quantity > 0)
+                    const unavailable = !sizeAvailableForColor
+
+                    return (
+                      <SizeOption
+                        key={size}
+                        $active={selectedSize === size}
+                        $unavailable={unavailable}
+                        disabled={unavailable}
+                        onClick={() => !unavailable && setSelectedSize(size)}
+                      >
+                        {size}
+                      </SizeOption>
+                    )
+                  })}
+                </SizeOptions>
             </OptionGroup>
           </OptionsSection>
           
@@ -992,23 +1242,32 @@ const ProductDetail: React.FC = () => {
           </QuantitySection>
           
           <ActionButtons>
-            <AddToCartButton
-              onClick={handleAddToCart}
-              disabled={currentVariation.inventory.quantity === 0}
-            >
-              <ShoppingBag size={18} />
-              {currentVariation.inventory.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </AddToCartButton>
+            {/* Determine if user can add to cart: must have selected color and size and a matching variation in stock */}
+            {(() => {
+              const canAdd = Boolean(currentVariation && currentVariation.inventory.quantity > 0 && selectedColor && selectedSize)
+              const outOfStock = Boolean(currentVariation && currentVariation.inventory.quantity === 0)
+
+              return (
+                <AddToCartButton
+                  onClick={handleAddToCart}
+                  disabled={!canAdd}
+                >
+                  <ShoppingBag size={18} />
+                  {!selectedColor || !selectedSize ? 'Select size & color' : (outOfStock ? 'Out of Stock' : 'Add to Cart')}
+                </AddToCartButton>
+              )
+            })()}
+
             <AddToWishlistButton onClick={toggleWishlist}>
               <Heart size={18} />
-              {isInWishlist ? 'Saved' : 'Save'}
+              {inWishlist ? 'Saved' : 'Save'}
             </AddToWishlistButton>
           </ActionButtons>
           
           <ProductFeatures>
             <FeatureItem>
               <Truck size={20} />
-              <span>Free shipping on orders over $75</span>
+              <span>Free shipping on orders over ₦100,000</span>
             </FeatureItem>
             <FeatureItem>
               <RotateCcw size={20} />
@@ -1078,8 +1337,91 @@ const ProductDetail: React.FC = () => {
             )}
           </TabContent>
         </TabsContainer>
+
+        {/* Rating & Reviews Section */}
+        <RatingSection>
+          <RatingHeader>
+            <RatingScore>
+              <div className="score">{(product.rating?.average || 0).toFixed(1)}</div>
+              <div className="stars">{renderStars(product.rating?.average || 0)}</div>
+              <div className="count">Based on {product.rating?.count || 0} reviews</div>
+            </RatingScore>
+          </RatingHeader>
+
+          {/* Review Form */}
+          <h3 style={{ marginBottom: '1rem' }}>Share Your Review</h3>
+          <ReviewForm onSubmit={handleSubmitReview}>
+            <RatingInput>
+              <label>Your Rating *</label>
+              <div className="stars">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <span
+                    key={star}
+                    className={`star ${reviewForm.rating >= star ? 'active' : ''}`}
+                    onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+            </RatingInput>
+
+            <div>
+              <label htmlFor="review-title" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                Review Title *
+              </label>
+              <FormInput
+                id="review-title"
+                type="text"
+                placeholder="Sum up your experience in a few words"
+                value={reviewForm.title}
+                onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="review-comment" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                Your Review *
+              </label>
+              <FormTextarea
+                id="review-comment"
+                placeholder="Share your experience with this product..."
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+              />
+            </div>
+
+            <SubmitRatingBtn type="submit" disabled={submitingReview}>
+              {submitingReview ? 'Submitting...' : 'Submit Review'}
+            </SubmitRatingBtn>
+          </ReviewForm>
+
+          {/* Reviews List */}
+          {reviews.length > 0 && (
+            <>
+              <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Customer Reviews</h3>
+              <ReviewList>
+                {reviews.map((review, index) => (
+                  <ReviewCard key={index}>
+                    <div className="review-header">
+                      <div className="reviewer-info">
+                        <h4>{review.user?.name || 'Anonymous'}</h4>
+                        <p>{new Date(review.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="stars">{renderStars(review.rating)}</div>
+                    </div>
+                    <div className="review-content">
+                      <h5>{review.title}</h5>
+                      <p>{review.comment}</p>
+                    </div>
+                  </ReviewCard>
+                ))}
+              </ReviewList>
+            </>
+          )}
+        </RatingSection>
       </MainContent>
-      
+
       {product.relatedProducts && product.relatedProducts.length > 0 && (
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1.5rem' }}>
           <RelatedSection>
@@ -1098,7 +1440,7 @@ const ProductDetail: React.FC = () => {
                   </RelatedImage>
                   <RelatedInfo>
                     <h4>{relatedProduct.name}</h4>
-                    <p>${relatedProduct.variations[0]?.price.toFixed(2)}</p>
+                    <p>{formatPrice(relatedProduct.variations[0]?.price)}</p>
                   </RelatedInfo>
                 </RelatedCard>
               ))}

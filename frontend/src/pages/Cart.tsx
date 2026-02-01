@@ -1,8 +1,10 @@
 // pages/cart.tsx
-import React from "react"
+import React, { useState, useEffect } from "react"
 import styled, { keyframes } from "styled-components"
 import { useCartStore } from "../stores/cartStore"
 import { Link } from "react-router-dom"
+import { productAPI } from '../services/api'
+import toast from 'react-hot-toast'
 
 // Animations
 const fadeIn = keyframes`
@@ -399,6 +401,7 @@ const StyledLink = styled(Link)`
 const Cart: React.FC = () => {
   const {
     items,
+    addItem,
     updateQuantity,
     removeItem,
     getTotalPrice,
@@ -409,9 +412,121 @@ const Cart: React.FC = () => {
   const totalPrice = getTotalPrice()
   const totalItems = getTotalItems()
 
-  const handleQuantityChange = (id: string, size: string, color: string, newQuantity: number) => {
-    if (newQuantity < 1) return
+  const handleQuantityChange = (id: string, size?: string, color?: string, newQuantity?: number) => {
+    if (newQuantity === undefined || newQuantity < 1) return
     updateQuantity(id, size, color, newQuantity)
+  }
+
+  const EditableCartRow: React.FC<{ item: any }> = ({ item }) => {
+    const [product, setProduct] = useState<any>(null)
+    const [loading, setLoading] = useState(false)
+    const [selectedColor, setSelectedColor] = useState(item.color || '')
+    const [selectedSize, setSelectedSize] = useState(item.size || '')
+    const [availableColors, setAvailableColors] = useState<any[]>([])
+    const [availableSizes, setAvailableSizes] = useState<string[]>([])
+
+    useEffect(() => {
+      let mounted = true
+      const load = async () => {
+        setLoading(true)
+        try {
+          const res = await productAPI.getProduct(item.id)
+          const prod = res?.data || res
+          if (!mounted) return
+          setProduct(prod)
+          const colors = Array.from(new Map(
+            (prod.variations || []).filter((v: any) => v.inventory?.quantity > 0).map((v: any) => [v.color, { name: v.color, code: v.colorCode }])
+          ).values())
+          setAvailableColors(colors)
+          setAvailableSizes(Array.from(new Set((prod.variations || []).map((v: any) => v.size))))
+        } catch (e) {
+          console.error('Failed to load product for cart item', e)
+        } finally {
+          if (mounted) setLoading(false)
+        }
+      }
+      load()
+      return () => { mounted = false }
+    }, [item.id])
+
+    const applySelection = () => {
+      if (!product) return
+      if (!selectedColor || !selectedSize) {
+        toast.error('Please select size and color')
+        return
+      }
+      const v = (product.variations || []).find((x: any) => x.color === selectedColor && x.size === selectedSize)
+      if (!v) {
+        toast.error('Selected combination is not available')
+        return
+      }
+
+      removeItem(item.id, item.size, item.color)
+      addItem({
+        id: item.id,
+        name: item.name,
+        price: v.price || item.price,
+        image: v.images?.[0]?.url || item.image,
+        size: selectedSize,
+        color: selectedColor,
+        quantity: item.quantity,
+        variationId: v._id || `${selectedColor}-${selectedSize}`
+      })
+      toast.success('Item updated in cart')
+    }
+
+    if (loading) return <CartItem><div>Loading...</div></CartItem>
+
+    return (
+      <CartItem key={`${item.id}-${item.size}-${item.color}`}>
+        <ItemImage>
+          <img src={item.image || '/api/placeholder/100/120'} alt={item.name} />
+        </ItemImage>
+        <ItemContent>
+          <ItemDetails>
+            <h4>{item.name}</h4>
+            <DesktopPrice className="price">₦{(item.price || 0).toLocaleString()}</DesktopPrice>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#666' }}>Color</div>
+                <select value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)}>
+                  <option value="">Select color</option>
+                  {availableColors.map(c => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: '#666' }}>Size</div>
+                <select value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
+                  <option value="">Select size</option>
+                  {availableSizes.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <button onClick={applySelection} style={{ marginTop: 20 }}>Save Options</button>
+              </div>
+            </div>
+          </ItemDetails>
+          <ItemControls>
+            <MobilePrice>₦{(item.price || 0).toLocaleString()}</MobilePrice>
+            <Controls>
+              <QuantityControl>
+                <QuantityButton
+                  onClick={() => handleQuantityChange(item.id, item.size, item.color, item.quantity - 1)}
+                  disabled={item.quantity <= 1}
+                >−</QuantityButton>
+                <QuantityInput type="number" min="1" value={item.quantity} onChange={(e) => handleQuantityChange(item.id, item.size, item.color, parseInt(e.target.value) || 1)} />
+                <QuantityButton onClick={() => handleQuantityChange(item.id, item.size, item.color, item.quantity + 1)}>+</QuantityButton>
+              </QuantityControl>
+            </Controls>
+            <RemoveButton onClick={() => removeItem(item.id, item.size, item.color)}>✕</RemoveButton>
+          </ItemControls>
+        </ItemContent>
+      </CartItem>
+    )
   }
 
   const handleContinueShopping = () => {
@@ -437,90 +552,96 @@ const Cart: React.FC = () => {
         </EmptyCart>
       ) : (
         <>
-          {items.map((item) => (
-            <CartItem key={`${item.id}-${item.size}-${item.color}`}>
-              <ItemImage>
-                <img 
-                  src={item.image || '/api/placeholder/100/120'} 
-                  alt={item.name}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/api/placeholder/100/120'
-                  }}
-                />
-              </ItemImage>
-              
-              <ItemContent>
-                <ItemDetails>
-                  <h4>{item.name}</h4>
-                  <DesktopPrice className="price">
-                    ₦{item.price.toLocaleString()}
-                  </DesktopPrice>
-                  <div className="attributes">
-                    {item.size && <span>Size: {item.size}</span>}
-                    {item.color && <span>Color: {item.color}</span>}
-                  </div>
-                </ItemDetails>
+          {items.map((item) => {
+            if (!item.size || !item.color) {
+              return <EditableCartRow key={`${item.id}-${item.size}-${item.color}`} item={item} />
+            }
 
-                <ItemControls>
-                  <MobilePrice>
-                    ₦{item.price.toLocaleString()}
-                  </MobilePrice>
-                  
-                  <Controls>
-                    <QuantityControl>
-                      <QuantityButton
-                        onClick={() => 
-                          handleQuantityChange(
-                            item.id, 
-                            item.size || '', 
-                            item.color || '', 
-                            item.quantity - 1
-                          )
-                        }
-                        disabled={item.quantity <= 1}
-                      >
-                        −
-                      </QuantityButton>
-                      <QuantityInput
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => 
-                          handleQuantityChange(
-                            item.id, 
-                            item.size || '', 
-                            item.color || '', 
-                            parseInt(e.target.value) || 1
-                          )
-                        }
-                      />
-                      <QuantityButton
-                        onClick={() => 
-                          handleQuantityChange(
-                            item.id, 
-                            item.size || '', 
-                            item.color || '', 
-                            item.quantity + 1
-                          )
-                        }
-                      >
-                        +
-                      </QuantityButton>
-                    </QuantityControl>
-                  </Controls>
+            return (
+              <CartItem key={`${item.id}-${item.size}-${item.color}`}>
+                <ItemImage>
+                  <img 
+                    src={item.image || '/api/placeholder/100/120'} 
+                    alt={item.name}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/api/placeholder/100/120'
+                    }}
+                  />
+                </ItemImage>
+                
+                <ItemContent>
+                  <ItemDetails>
+                    <h4>{item.name}</h4>
+                    <DesktopPrice className="price">
+                      ₦{(item.price || 0).toLocaleString()}
+                    </DesktopPrice>
+                    <div className="attributes">
+                      {item.size && <span>Size: {item.size}</span>}
+                      {item.color && <span>Color: {item.color}</span>}
+                    </div>
+                  </ItemDetails>
 
-                  <RemoveButton
-                    onClick={() => 
-                      removeItem(item.id, item.size, item.color)
-                    }
-                    title="Remove item"
-                  >
-                    ✕
-                  </RemoveButton>
-                </ItemControls>
-              </ItemContent>
-            </CartItem>
-          ))}
+                  <ItemControls>
+                    <MobilePrice>
+                      ₦{(item.price || 0).toLocaleString()}
+                    </MobilePrice>
+                    
+                    <Controls>
+                      <QuantityControl>
+                        <QuantityButton
+                          onClick={() => 
+                            handleQuantityChange(
+                              item.id, 
+                              item.size, 
+                              item.color, 
+                              item.quantity - 1
+                            )
+                          }
+                          disabled={item.quantity <= 1}
+                        >
+                          −
+                        </QuantityButton>
+                        <QuantityInput
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => 
+                            handleQuantityChange(
+                              item.id, 
+                              item.size, 
+                              item.color, 
+                              parseInt(e.target.value) || 1
+                            )
+                          }
+                        />
+                        <QuantityButton
+                          onClick={() => 
+                            handleQuantityChange(
+                              item.id, 
+                              item.size, 
+                              item.color, 
+                              item.quantity + 1
+                            )
+                          }
+                        >
+                          +
+                        </QuantityButton>
+                      </QuantityControl>
+                    </Controls>
+
+                    <RemoveButton
+                      onClick={() => 
+                        removeItem(item.id, item.size, item.color)
+                      }
+                      title="Remove item"
+                    >
+                      ✕
+                    </RemoveButton>
+                  </ItemControls>
+                </ItemContent>
+              </CartItem>
+            )
+          })}
 
           <Summary>
             <SummaryRow>

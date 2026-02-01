@@ -9,9 +9,6 @@ export const API_BASE_URL = config.API_BASE_URL;
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
   withCredentials: true,
 });
 
@@ -24,6 +21,19 @@ api.interceptors.request.use(
       if (token) {
         requestConfig.headers = requestConfig.headers || {};
         requestConfig.headers.Authorization = `Bearer ${token}`;
+      }
+
+      // For FormData, don't set Content-Type - let axios/browser handle it with boundary
+      // Otherwise, set default JSON content type if not already set
+      if (!(requestConfig.data instanceof FormData)) {
+        requestConfig.headers = requestConfig.headers || {};
+        if (!requestConfig.headers['Content-Type']) {
+          requestConfig.headers['Content-Type'] = 'application/json';
+        }
+      } else {
+        // For FormData, remove Content-Type so axios will set multipart/form-data with boundary
+        requestConfig.headers = requestConfig.headers || {};
+        delete requestConfig.headers['Content-Type'];
       }
 
       // Add request timestamp for debugging/tracing
@@ -41,9 +51,13 @@ api.interceptors.request.use(
 
 // Enhanced response interceptor with better error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('[AXIOS RESPONSE] Success:', response.status, response.config.url);
+    return response;
+  },
   (error) => {
     const originalRequest = error?.config;
+    console.log('[AXIOS RESPONSE] Error:', error?.response?.status, originalRequest?.url);
 
     // Handle auth errors centrally
     if (error?.response?.status === 401) {
@@ -76,6 +90,9 @@ export const handleApiError = (error: any, defaultMessage = 'Something went wron
   return defaultMessage;
 };
 
+// Mock products for fallback in development
+// Mock products removed - all data from API
+
 // Product endpoints with enhanced error handling
 export const productAPI = {
   // Get all products with filters
@@ -100,53 +117,13 @@ export const productAPI = {
     }
   },
 
-  // Get featured products with fallback
+  // Get featured products
   getFeaturedProducts: async () => {
     try {
       const response = await api.get('/products/featured');
       return response.data;
     } catch (error) {
       console.error('Error fetching featured products:', error);
-      
-      // Provide mock data as fallback for development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Using mock featured products data');
-        return [
-          {
-            _id: '1',
-            name: 'Classic White T-Shirt',
-            price: 29.99,
-            originalPrice: 39.99,
-            images: ['/images/tshirt-white.jpg'],
-            colors: ['white', 'black', 'gray'],
-            rating: 4.5,
-            reviewCount: 128,
-            isNew: true,
-            isSale: true,
-            category: { _id: '1', name: 'Clothing' },
-            description: 'Comfortable classic white t-shirt',
-            slug: 'classic-white-tshirt',
-            inStock: true,
-            featured: true
-          },
-          {
-            _id: '2',
-            name: 'Premium Jeans',
-            price: 79.99,
-            images: ['/images/jeans-premium.jpg'],
-            colors: ['blue', 'black'],
-            rating: 4.8,
-            reviewCount: 89,
-            isNew: false,
-            category: { _id: '2', name: 'Pants' },
-            description: 'High-quality premium jeans',
-            slug: 'premium-jeans',
-            inStock: true,
-            featured: true
-          }
-        ];
-      }
-      
       throw error;
     }
   },
@@ -208,6 +185,42 @@ export const productAPI = {
     }
   },
 
+  // Submit a review/rating
+  submitRating: async (productId: string, reviewData: { rating: number; title: string; comment: string }) => {
+    try {
+      const response = await api.post(`/products/${productId}/rate`, reviewData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error submitting rating for product ${productId}:`, error);
+      throw error;
+    }
+  },
+
+  // Bulk fetch products by IDs. Tries a single API request first (/products?ids=1,2,3),
+  // falls back to parallel getProduct calls if the endpoint isn't supported.
+  getProductsByIds: async (ids: string[]) => {
+    if (!ids || ids.length === 0) return { data: [] };
+
+    try {
+      // Try single request if backend supports comma-separated ids
+      const response = await api.get('/products', { params: { ids: ids.join(',') } });
+      return response.data;
+    } catch (err) {
+      console.warn('Bulk fetch failed, falling back to individual requests', err);
+      try {
+        const results = await Promise.all(ids.map(id => productAPI.getProduct(id).catch(e => ({ error: e }))));
+        // Normalize results: some entries may be { data: product } or product directly
+        const normalized = results.map(r => {
+          if (r && (r as any).success && (r as any).data) return (r as any).data;
+          return r;
+        });
+        return { data: normalized };
+      } catch (e) {
+        throw e;
+      }
+    }
+  },
+
   // Add product review
   addProductReview: async (productId: string, review: any) => {
     try {
@@ -225,19 +238,29 @@ export const authAPI = {
   // Login user
   login: async (credentials: { email: string; password: string }) => {
     try {
+      console.log('[AUTH API] Attempting login with email:', credentials.email);
       const response = await api.post('/auth/login', credentials);
+      console.log('[AUTH API] Login response status:', response.status);
+      console.log('[AUTH API] Login response data:', response.data);
       
       // Store token if provided
       if (response.data.token) {
+        console.log('[AUTH API] Storing token');
         localStorage.setItem('authToken', response.data.token);
       }
       if (response.data.user) {
+        console.log('[AUTH API] Storing user data');
         localStorage.setItem('userData', JSON.stringify(response.data.user));
       }
       
       return response.data;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[AUTH API] Login error:', error);
+      console.error('[AUTH API] Error details:', {
+        status: (error as any)?.status,
+        message: (error as any)?.message,
+        details: (error as any)?.details,
+      });
       throw error;
     }
   },
@@ -415,17 +438,17 @@ export const cartAPI = {
 // Wishlist endpoints
 export const wishlistAPI = {
   getWishlist: async () => {
-    const response = await api.get('/wishlist');
+    const response = await api.get('/auth/wishlist');
     return response.data;
   },
 
   addToWishlist: async (productId: string) => {
-    const response = await api.post('/wishlist', { productId });
+    const response = await api.post('/auth/wishlist', { productId });
     return response.data;
   },
 
   removeFromWishlist: async (productId: string) => {
-    const response = await api.delete(`/wishlist/${productId}`);
+    const response = await api.delete(`/auth/wishlist/${productId}`);
     return response.data;
   },
 };
@@ -442,8 +465,15 @@ export const orderAPI = {
     return response.data;
   },
 
+  // Get orders for the authenticated user
+  getMyOrders: async () => {
+    const response = await api.get('/orders/my-orders');
+    return response.data;
+  },
+
   createOrder: async (orderData: any) => {
-    const response = await api.post('/orders', orderData);
+    // Use extended timeout for order creation (includes email + payment init)
+    const response = await api.post('/orders', orderData, { timeout: 45000 });
     return response.data;
   },
 

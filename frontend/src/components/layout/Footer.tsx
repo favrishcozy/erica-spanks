@@ -147,6 +147,10 @@ const Copyright = styled.div`
   font-size: ${({ theme }) => theme.fontSizes.sm};
 `
 
+const getCurrentYear = () => {
+  return new Date().getFullYear()
+}
+
 const Footer: React.FC = () => {
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -197,11 +201,19 @@ const Footer: React.FC = () => {
           </ContactInfo>
           <ContactInfo>
             <Phone size={16} />
-            <span>1-800-SPANKS-1</span>
+            <span>+234 902 713 4581</span>
+          </ContactInfo>
+          <ContactInfo>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.477 2 2 6.477 2 12c0 5.522 4.477 10 10 10s10-4.478 10-10c0-5.523-4.477-10-10-10zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" fill="currentColor"/>
+              <path d="M12 6c-3.314 0-6 2.686-6 6 0 1.012.259 1.965.707 2.793l-1.414 4.828 4.923-1.292A5.96 5.96 0 0 0 18 12c0-3.314-2.686-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="currentColor"/>
+              <path d="M15.5 8.5c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5z" fill="currentColor"/>
+            </svg>
+            <span>WhatsApp: +234 902 713 4581</span>
           </ContactInfo>
           <ContactInfo>
             <MapPin size={16} />
-            <span>Los Angeles, CA</span>
+            <span>Lagos, Nigeria</span>
           </ContactInfo>
           
           <SocialLinks>
@@ -230,7 +242,7 @@ const Footer: React.FC = () => {
       </FooterContent>
       
       <Copyright>
-        <p>&copy; 2024 Erica Spanks. All rights reserved.</p>
+        <p>&copy; {getCurrentYear()} Erica Spanks. All rights reserved.</p>
       </Copyright>
     </FooterContainer>
   )

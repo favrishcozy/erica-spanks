@@ -1,5 +1,6 @@
 import express from 'express'
 import mongoose from 'mongoose'
+import { sendEmail, emailTemplates } from '../utils/emailService.js'
 
 const router = express.Router()
 
@@ -64,6 +65,10 @@ router.post('/subscribe', async (req, res) => {
     // Create new subscription
     const newSubscriber = new Newsletter({ email })
     await newSubscriber.save()
+
+    // Send welcome email
+    const welcomeTemplate = emailTemplates.newsletterWelcome(email)
+    await sendEmail(email, welcomeTemplate)
 
     res.status(201).json({
       success: true,

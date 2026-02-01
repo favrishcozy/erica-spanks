@@ -1,9 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { Heart, ShoppingBag, Trash2, Share } from 'lucide-react'
-import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
+import { useWishlistStore } from '../stores/wishlistStore'
+import { productAPI } from '../services/api'
+import toast from 'react-hot-toast'
+import { formatPrice } from '../utils/currency'
 
 const WishlistContainer = styled.div`
   max-width: 1200px;
@@ -182,6 +185,15 @@ const ProductPrice = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.md};
 `
 
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40vh;
+  font-size: ${({ theme }) => theme.fontSizes.lg};
+  color: ${({ theme }) => theme.colors.darkGray};
+`
+
 const CurrentPrice = styled.span`
   font-size: ${({ theme }) => theme.fontSizes.lg};
   font-weight: ${({ theme }) => theme.fontWeights.bold};
@@ -241,40 +253,147 @@ const mockWishlistItems = [
 ]
 
 const Wishlist: React.FC = () => {
-  const { user, removeFromWishlist } = useAuthStore()
   const { addItem } = useCartStore()
+  const { items: wishlistIds, removeFromWishlist } = useWishlistStore()
   const [selectedSizes, setSelectedSizes] = useState<{[key: string]: string}>({})
   const [selectedColors, setSelectedColors] = useState<{[key: string]: string}>({})
 
-  if (!user) {
-    return (
-      <WishlistContainer>
-        <EmptyWishlist>
-          <EmptyIcon>
-            <Heart size={60} />
-          </EmptyIcon>
-          <EmptyTitle>Sign in to see your wishlist</EmptyTitle>
-          <EmptyText>
-            Save items you love to your wishlist and shop them later.
-          </EmptyText>
-          <ShopButton to="/login">
-            Sign In
-          </ShopButton>
-        </EmptyWishlist>
-      </WishlistContainer>
-    )
-  }
+  // Fetch wishlist product details from API when possible. If an ID
+  // doesn't return a product, fall back to mock data or a placeholder
+  // so the UI still shows a saved entry with a link to the product page.
+  const [wishlistItems, setWishlistItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const wishlistItems = mockWishlistItems // Replace with real wishlist items
+  useEffect(() => {
+    let cancelled = false
+
+    const extractImage = (product: any) => {
+      if (!product) return '/placeholder.jpg'
+      // product.image (string)
+      if (product.image && typeof product.image === 'string') return product.image
+      // product.images might be array of strings or objects
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        const first = product.images[0]
+        if (typeof first === 'string') return first
+        if (first?.url) return first.url
+      }
+      // variations -> variations[0].images
+      if (Array.isArray(product.variations) && product.variations.length > 0) {
+        const v = product.variations[0]
+        if (v?.images && v.images.length > 0) {
+          const fi = v.images[0]
+          if (typeof fi === 'string') return fi
+          if (fi?.url) return fi.url
+        }
+      }
+      // primaryImage
+      if (product.primaryImage && typeof product.primaryImage === 'string') return product.primaryImage
+      if (product.primaryImage?.url) return product.primaryImage.url
+      return '/placeholder.jpg'
+    }
+
+    const load = async () => {
+      if (!wishlistIds || wishlistIds.length === 0) {
+        setWishlistItems([])
+        return
+      }
+
+      setLoading(true)
+
+      try {
+        // Try bulk fetch first
+        const res = await productAPI.getProductsByIds(wishlistIds)
+        const data = res && (res as any).data ? (res as any).data : []
+
+        const normalized = wishlistIds.map((id) => {
+          // find in returned data by id or slug
+          const found = (data || []).find((p: any) => (p && ((p._id === id) || (p.id === id) || (p.slug === id))))
+          if (found) {
+            const derivedPrice = found.price ?? found.currentPrice ?? (Array.isArray(found.variations) && found.variations.length ? found.variations[0].price : null)
+            const derivedOriginal = found.originalPrice ?? found.compareAtPrice ?? (Array.isArray(found.variations) && found.variations.length ? found.variations[0].compareAtPrice : null)
+
+            return {
+              id,
+              name: found.name || found.title || 'Product',
+              price: derivedPrice,
+              originalPrice: derivedOriginal,
+              image: extractImage(found),
+              sizes: found.sizes || (found.variations ? [...new Set(found.variations.map((v: any) => v.size))] : ['M']),
+              colors: found.colors || (found.variations ? [...new Set(found.variations.map((v: any) => v.color))] : ['Default']),
+            }
+          }
+
+          // fallback to mock
+          const mock = mockWishlistItems.find(m => m.id === id)
+          if (mock) return mock
+
+          return {
+            id,
+            name: 'Saved product — details unavailable',
+            price: null,
+            originalPrice: null,
+            image: '/placeholder.jpg',
+            sizes: ['M'],
+            colors: ['Default'],
+            missingDetails: true,
+          }
+        })
+
+        if (!cancelled) setWishlistItems(normalized)
+      } catch (e) {
+        // On any unexpected error, fallback to per-id fetch
+        const items = await Promise.all(wishlistIds.map(async (id) => {
+          try {
+            const r = await productAPI.getProduct(id)
+            const product = (r && (r as any).data) ? (r as any).data : r
+            const derivedPrice = product.price ?? product.currentPrice ?? (Array.isArray(product.variations) && product.variations.length ? product.variations[0].price : null)
+            const derivedOriginal = product.originalPrice ?? product.compareAtPrice ?? (Array.isArray(product.variations) && product.variations.length ? product.variations[0].compareAtPrice : null)
+
+            return {
+              id,
+              name: product.name || 'Product',
+              price: derivedPrice,
+              originalPrice: derivedOriginal,
+              image: extractImage(product),
+              sizes: product.sizes || (product.variations ? [...new Set(product.variations.map((v: any) => v.size))] : ['M']),
+              colors: product.colors || (product.variations ? [...new Set(product.variations.map((v: any) => v.color))] : ['Default']),
+            }
+          } catch (err) {
+            const mock = mockWishlistItems.find(m => m.id === id)
+            if (mock) return mock
+            return {
+              id,
+              name: 'Saved product — details unavailable',
+              price: null,
+              originalPrice: null,
+              image: '/placeholder.jpg',
+              sizes: ['M'],
+              colors: ['Default'],
+              missingDetails: true,
+            }
+          }
+        }))
+
+        if (!cancelled) setWishlistItems(items)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+
+    return () => { cancelled = true }
+  }, [wishlistIds])
 
   const handleRemoveFromWishlist = (productId: string) => {
     removeFromWishlist(productId)
+    toast.success('Removed from wishlist')
   }
 
   const handleAddToBag = (item: any) => {
     const selectedSize = selectedSizes[item.id] || item.sizes[0]
     const selectedColor = selectedColors[item.id] || item.colors[0]
-    
+
     addItem({
       id: item.id,
       name: item.name,
@@ -282,10 +401,11 @@ const Wishlist: React.FC = () => {
       image: item.image,
       size: selectedSize,
       color: selectedColor,
+      quantity: 1,
     })
   }
 
-  if (wishlistItems.length === 0) {
+  if (!loading && wishlistItems.length === 0) {
     return (
       <WishlistContainer>
         <WishlistHeader>
@@ -304,6 +424,18 @@ const Wishlist: React.FC = () => {
             Start Shopping <ShoppingBag size={18} />
           </ShopButton>
         </EmptyWishlist>
+      </WishlistContainer>
+    )
+  }
+
+  if (loading) {
+    return (
+      <WishlistContainer>
+        <WishlistHeader>
+          <Title>My Wishlist</Title>
+          <Subtitle>Loading saved items…</Subtitle>
+        </WishlistHeader>
+        <LoadingContainer>Loading wishlist...</LoadingContainer>
       </WishlistContainer>
     )
   }
@@ -347,18 +479,27 @@ const Wishlist: React.FC = () => {
               <Link to={`/product/${item.id}`} style={{ textDecoration: 'none' }}>
                 <ProductName>{item.name}</ProductName>
               </Link>
-              
-              <ProductPrice>
-                <CurrentPrice>£{item.price}</CurrentPrice>
-                {item.originalPrice && (
-                  <OriginalPrice>£{item.originalPrice}</OriginalPrice>
-                )}
-              </ProductPrice>
-              
-              <AddToBagButton onClick={() => handleAddToBag(item)}>
-                <ShoppingBag size={16} />
-                Add to Bag
-              </AddToBagButton>
+
+              {item.missingDetails ? (
+                <div style={{ marginTop: '8px', color: '#666' }}>
+                  <p>Saved product — details unavailable</p>
+                  <Link to={`/product/${item.id}`}>View product</Link>
+                </div>
+              ) : (
+                <>
+                  <ProductPrice>
+                    <CurrentPrice>{formatPrice(item.price)}</CurrentPrice>
+                    {item.originalPrice && (
+                      <OriginalPrice>{formatPrice(item.originalPrice)}</OriginalPrice>
+                    )}
+                  </ProductPrice>
+                  
+                  <AddToBagButton onClick={() => handleAddToBag(item)}>
+                    <ShoppingBag size={16} />
+                    Add to Bag
+                  </AddToBagButton>
+                </>
+              )}
             </ProductInfo>
           </ProductCard>
         ))}
