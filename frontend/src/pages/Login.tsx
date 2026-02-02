@@ -121,11 +121,6 @@ const Login: React.FC = () => {
         <SwitchText>
           Don't have an account? <Link to="/register">Create one</Link>
         </SwitchText>
-
-        {/* Demo credentials hint */}
-        <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#666', textAlign: 'center' }}>
-          <p>Demo: test@example.com / password</p>
-        </div>
       </FormWrapper>
     </AuthContainer>
   )
