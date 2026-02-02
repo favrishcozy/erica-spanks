@@ -113,22 +113,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(morgan('combined'))
 app.use('/api/', limiter)
 
-// Serve static files from frontend images folder
-const imagesPath = path.join(__dirname, '../../frontend/src/images')
-app.use('/images', express.static(imagesPath))
-console.log(`🖼️ Serving images from: ${imagesPath}`)
-
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions))
-
-// Test endpoint to verify image serving
-app.get('/test-images', (req, res) => {
-  res.json({
-    message: 'Image serving is configured',
-    imagesPath: '/images',
-    example: 'http://localhost:5000/images/Dress.jpeg'
-  })
-})
 
 // Health check endpoint
 app.get('/health', (req, res) => {
