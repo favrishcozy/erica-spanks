@@ -10,7 +10,7 @@ import { Product } from '../types/Product'
 import { formatPrice } from '../utils/currency'
 
 // Types (keeping your existing types, they're compatible)
-interface Product {
+interface LocalProduct {
   _id: string
   name: string
   slug: string
@@ -136,16 +136,26 @@ const FilterOption = styled.label`
 
 const PriceRange = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.xs};
   margin-top: ${({ theme }) => theme.spacing.md};
 `
 
 const PriceInput = styled.input`
   flex: 1;
-  padding: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.xs};
   border: 1px solid ${({ theme }) => theme.colors.mediumGray};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
-  font-size: ${({ theme }) => theme.fontSizes.sm};
+  font-size: ${({ theme }) => theme.fontSizes.xs};
+  height: 28px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex: 1;
+    width: 100%;
+    padding: ${({ theme }) => theme.spacing.xs};
+    font-size: ${({ theme }) => theme.fontSizes.xs};
+    height: 28px;
+  }
 `
 
 // Product Grid
@@ -500,7 +510,7 @@ const ProductList: React.FC = () => {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
   
   // State - updated with error state
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<LocalProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<'grid' | 'list'>('grid')
@@ -650,7 +660,7 @@ const ProductList: React.FC = () => {
   }
   
   // Handle add to cart
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: LocalProduct) => {
     const variations = product.variations || []
     if (variations.length === 1) {
       const v = variations[0]
@@ -713,7 +723,7 @@ const ProductList: React.FC = () => {
   }
 
   // Compute filtered & sorted products from active filters
-  const filteredProducts = useMemo<Product[]>(() => {
+  const filteredProducts = useMemo<LocalProduct[]>(() => {
     const { sizes, colors, minPrice, maxPrice, sort } = filters
 
     let list = products.slice()

@@ -25,7 +25,6 @@ import contactRoutes from './routes/contact.js'
 import newsletterRoutes from './routes/newsletter.js'
 import adminRoutes from './routes/admin.js'
 import uploadRoutes from './routes/upload.js'
-import pointsRoutes from './routes/points.js'
 import webhooksRoutes from './routes/webhooks.js'
 import { getEmailTransporter } from './utils/emailService.js'
 import occasionsRoutes from './routes/occasions.js'
@@ -134,7 +133,6 @@ app.use('/api/contact', contactRoutes)
 app.use('/api/newsletter', newsletterRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/upload', uploadRoutes)
-app.use('/api/points', pointsRoutes)
 app.use('/api/webhooks', webhooksRoutes)
 app.use('/api/occasions', occasionsRoutes)
 

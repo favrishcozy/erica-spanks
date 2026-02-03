@@ -308,7 +308,7 @@ const Contact: React.FC = () => {
     }
   }
 
-  const whatsappNumber = "+1234567890" // Replace with actual WhatsApp number
+  const whatsappNumber = "+2349027134581" // Replace with actual WhatsApp number
   const whatsappMessage = "Hi! I'm interested in Erica Spanks products."
 
   return (
@@ -410,7 +410,7 @@ const Contact: React.FC = () => {
                 </InfoIcon>
                 <InfoContent>
                   <InfoTitle>Phone</InfoTitle>
-                  <InfoText>Available Monday - Friday, 9AM - 6PM EST</InfoText>
+                  <InfoText>Available Monday - Friday, 9AM - 6PM WAT</InfoText>
                 </InfoContent>
               </InfoItem>
 
