@@ -61,11 +61,6 @@ coverage/
 # Ignore IDE workspace files
 *.code-workspace
 
-# Ignore package manager lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
 # Ignore uploaded files
 uploads/
 public/uploads/
@@ -127,11 +122,6 @@ coverage/
 
 # Ignore IDE workspace files
 *.code-workspace
-
-# Ignore package manager lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
 
 # Ignore uploaded files
