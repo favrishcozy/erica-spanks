@@ -66,10 +66,6 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Ignore compiled TypeScript files
-*.js
-*.js.map
-
 # Ignore uploaded files
 uploads/
 public/uploads/
@@ -100,6 +96,7 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example
 
 # Ignore dependency directories
 node_modules/
@@ -136,9 +133,6 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Ignore compiled TypeScript files
-*.js
-*.js.map
 
 # Ignore uploaded files
 uploads/
