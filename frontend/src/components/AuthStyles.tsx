@@ -6,7 +6,7 @@ export const AuthContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #fff4f7, #ffe1eb);
+  background: linear-gradient(135deg, #fdf7f0, #E8D4B8);
 `
 
 export const FormWrapper = styled.div`

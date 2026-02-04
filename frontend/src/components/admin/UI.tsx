@@ -1,7 +1,7 @@
 import styled from 'styled-components'
 
 export const DashboardHeader = styled.div`
-  background: linear-gradient(135deg, #D4AF37 0%, #c99820 100%);
+  background: linear-gradient(135deg, #C9A876 0%, #1a1a1a 100%);
   color: white;
   padding: 20px 16px;
   margin: -40px -24px 32px -24px;
@@ -74,7 +74,7 @@ export const SquareStatCard = styled.div`
   min-width: 0;
   font-weight: 700;
   font-size: 0.9rem;
-  border-top: 3px solid #D4AF37;
+  border-top: 3px solid #C9A876;
   transition: all 0.3s ease;
 
   &:active {
@@ -106,6 +106,35 @@ export const IconOnlyButton = styled.button`
     width: 18px; 
     height: 18px; 
   }
+`
 
-  @media(min-width: 769px) { display: none; }
+export const TextButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255,255,255,0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+  }
+
+  svg { 
+    width: 16px; 
+    height: 16px; 
+  }
+
+  @media(max-width: 768px) { display: none; }
 `

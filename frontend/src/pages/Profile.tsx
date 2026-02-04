@@ -55,7 +55,7 @@ const Card = styled.div`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 24px;
   transition: all 0.3s ease;
-  border-left: 4px solid #D4AF37;
+  border-left: 4px solid #C9A876;
   
   &:hover {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
@@ -96,13 +96,13 @@ const InfoRow = styled.div`
 `
 
 const PointsStatCard = styled.div`
-  background: linear-gradient(135deg, #D4AF37 0%, #F4E4C1 100%);
+  background: linear-gradient(135deg, #C9A876 0%, #E8D4B8 100%);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
   color: #333;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 2px 8px rgba(201, 168, 118, 0.2);
   
   .label {
     font-size: 0.85rem;
@@ -200,7 +200,7 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
       case 'secondary':
         return '#e8e8e8'
       default:
-        return '#D4AF37'
+        return '#C9A876'
     }
   }};
   

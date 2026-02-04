@@ -490,15 +490,22 @@ router.get('/category/:category', optionalAuth,
     // Handle category - resolve slug/name to ObjectId
     if (category && category !== 'all') {
       console.log(`[CATEGORY] Resolving category: ${category}`)
-      const resolved = await resolveCategoryId(category)
-      console.log(`[CATEGORY] Resolved to: ${resolved}`)
-      if (resolved) {
-        query.category = resolved
-        console.log(`[CATEGORY] Using ObjectId filter`)
+      
+      // Special handling for "new-in" - show latest products without category filter
+      if (category === 'new-in') {
+        console.log(`[CATEGORY] "new-in" detected - showing latest products across all categories`)
+        // Don't add category filter, just sort by createdAt descending
       } else {
-        // Fallback to tag-based search if slug doesn't match a category
-        query.tags = { $in: [category.toString().toLowerCase()] }
-        console.log(`[CATEGORY] Using tag fallback`)
+        const resolved = await resolveCategoryId(category)
+        console.log(`[CATEGORY] Resolved to: ${resolved}`)
+        if (resolved) {
+          query.category = resolved
+          console.log(`[CATEGORY] Using ObjectId filter`)
+        } else {
+          // Fallback to tag-based search if slug doesn't match a category
+          query.tags = { $in: [category.toString().toLowerCase()] }
+          console.log(`[CATEGORY] Using tag fallback`)
+        }
       }
     }
 

@@ -109,10 +109,18 @@ router.post('/', customer, async (req, res) => {
         })
       }
 
-      if (!variation.inventory || variation.inventory.quantity < cartItem.quantity) {
+      // Check if variation has required inventory
+      if (!variation.inventory || variation.inventory.quantity === 0) {
         return res.status(400).json({
           success: false,
-          error: `${product.name} (${cartItem.size}) is out of stock`
+          error: `${product.name} (${cartItem.size}, ${cartItem.color}) is out of stock`
+        })
+      }
+
+      if (variation.inventory.quantity < cartItem.quantity) {
+        return res.status(400).json({
+          success: false,
+          error: `${product.name} (${cartItem.size}, ${cartItem.color}) has only ${variation.inventory.quantity} item(s) available`
         })
       }
 
@@ -137,7 +145,7 @@ router.post('/', customer, async (req, res) => {
     }
 
     // Calculate pricing
-    const shippingCost = subtotal > 50000 ? 0 : 1500
+    const shippingCost = 0
     let discount = 0
 
     if (pointsRedemption?.pointsToRedeem) {

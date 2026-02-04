@@ -246,7 +246,7 @@ const OrderHistory: React.FC = () => {
             onClick={() => navigate('/products')}
             style={{
               padding: '12px 32px',
-              background: '#FF1493',
+              background: '#C9A876',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -374,7 +374,7 @@ const OrderHistory: React.FC = () => {
                       justifyContent: 'space-between',
                       fontSize: '16px',
                       fontWeight: '600',
-                      color: '#FF1493',
+                      color: '#C9A876',
                       borderTop: '1px solid #ddd',
                       paddingTop: '8px'
                     }}

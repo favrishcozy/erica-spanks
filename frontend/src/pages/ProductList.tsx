@@ -269,12 +269,14 @@ const ProductImage = styled.div<{ view: 'grid' | 'list' }>`
   }
 `
 
-const ProductBadge = styled.span<{ type: 'new' | 'sale' }>`
+const ProductBadge = styled.span<{ type: 'new' | 'sale' | 'outOfStock' }>`
   position: absolute;
   top: ${({ theme }) => theme.spacing.sm};
   left: ${({ theme }) => theme.spacing.sm};
-  background: ${({ theme, type }) => 
-    type === 'new' ? theme.colors.black : theme.colors.primary};
+  background: ${({ theme, type }) => {
+    if (type === 'outOfStock') return '#ff6b6b';
+    return type === 'new' ? theme.colors.black : theme.colors.primary;
+  }};
   color: ${({ theme }) => theme.colors.white};
   padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
@@ -933,8 +935,11 @@ const ProductList: React.FC = () => {
                         }}
                       />
                       
-                      {product.isNew && <ProductBadge type="new">New</ProductBadge>}
-                      {product.onSale && discount > 0 && (
+                      {variation.inventory.quantity === 0 && (
+                        <ProductBadge type="outOfStock">Out of Stock</ProductBadge>
+                      )}
+                      {product.isNew && variation.inventory.quantity > 0 && <ProductBadge type="new">New</ProductBadge>}
+                      {product.onSale && variation.inventory.quantity > 0 && discount > 0 && (
                         <ProductBadge type="sale">-{discount}%</ProductBadge>
                       )}
                       

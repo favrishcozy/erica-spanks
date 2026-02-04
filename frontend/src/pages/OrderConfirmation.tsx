@@ -94,7 +94,7 @@ const DetailSection = styled.div`
     svg {
       width: 20px;
       height: 20px;
-      color: #FF1493;
+      color: #C9A876;
     }
   }
 `
@@ -234,9 +234,9 @@ const Button = styled.button<{ $primary?: boolean }>`
   transition: all 0.3s ease;
   font-size: 1rem;
 
-  background: ${({ $primary }) => $primary ? '#FF1493' : 'transparent'};
-  color: ${({ $primary }) => $primary ? 'white' : '#FF1493'};
-  border: ${({ $primary }) => $primary ? 'none' : '2px solid #FF1493'};
+  background: ${({ $primary }) => $primary ? '#C9A876' : 'transparent'};
+  color: ${({ $primary }) => $primary ? 'white' : '#C9A876'};
+  border: ${({ $primary }) => $primary ? 'none' : '2px solid #C9A876'};
 
   &:hover {
     transform: translateY(-2px);

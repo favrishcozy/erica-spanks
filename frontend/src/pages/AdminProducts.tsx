@@ -23,12 +23,12 @@ const Container = styled.div`
 `
 
 const Header = styled.div`
-  background: linear-gradient(135deg, #D4AF37 0%, #c99820 100%);
+  background: #1a1a1a;
   color: white;
   padding: 24px;
   margin: -40px -24px 32px -24px;
   border-radius: 0 0 20px 20px;
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -45,12 +45,21 @@ const Header = styled.div`
   }
   
   @media (max-width: 768px) {
-    margin: -40px -16px 32px -16px;
-    width: calc(100% + 32px);
+    flex-direction: column;
+    align-items: center;
     padding: 16px;
-    flex-wrap: wrap;
+    margin: -40px -16px 12px -16px;
+    width: calc(100% + 32px);
     gap: 12px;
-    border-radius: 0 0 16px 16px;
+    border-radius: 0;
+    margin-top: 12px;
+    
+    h1 {
+      font-size: 22px;
+      width: 100%;
+      order: 1;
+      text-align: center;
+    }
   }
 `
 
@@ -61,12 +70,15 @@ const Actions = styled.div`
   align-items: center;
   
   @media (max-width: 768px) {
-    gap: 8px;
+    gap: 6px;
+    width: 100%;
+    order: 2;
+    justify-content: center;
   }
 `
 
 const Button = styled.button`
-  background: #D4AF37;
+  background: #C9A876;
   color: white;
   border: none;
   padding: 12px 20px;
@@ -80,7 +92,7 @@ const Button = styled.button`
   font-size: 14px;
 
   &:hover {
-    background: #c99820;
+    background: #1a1a1a;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
@@ -98,16 +110,21 @@ const Button = styled.button`
 `
 
 const SecondaryBtn = styled(Button)`
-  background: #667eea;
+  background: #C9A876;
   padding: 10px 16px;
 
   &:hover {
-    background: #5568d3;
+    background: #1a1a1a;
   }
 
   @media (max-width: 768px) {
-    padding: 8px 12px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 4px;
+    svg {
+      width: 16px;
+      height: 16px;
+    }
   }
 `
 
@@ -131,7 +148,7 @@ const StatCard = styled.div`
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  border-top: 4px solid #D4AF37;
+  border-top: 4px solid #C9A876;
   
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -150,7 +167,7 @@ const StatCard = styled.div`
   p {
     font-size: 24px;
     font-weight: 700;
-    color: #D4AF37;
+    color: #C9A876;
     margin: 0;
   }
 
@@ -189,7 +206,7 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #D4AF37;
+    border-color: #C9A876;
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
   }
 `
@@ -207,7 +224,7 @@ const PriceRangeGroup = styled.div`
 
     &:focus {
       outline: none;
-      border-color: #D4AF37;
+      border-color: #C9A876;
       box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
     }
   }
@@ -238,7 +255,7 @@ const ProductsTable = styled.table`
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #D4AF37;
+    border-bottom: 2px solid #C9A876;
 
     @media (max-width: 768px) {
       padding: 10px 8px;
@@ -305,11 +322,11 @@ const ActionButtons = styled.div`
 `
 
 const EditBtn = styled.button`
-  background: #667eea;
+  background: #C9A876;
   color: white;
 
   &:hover {
-    background: #5568d3;
+    background: #1a1a1a;
     transform: translateY(-1px);
   }
 `
@@ -417,7 +434,7 @@ const FormGroup = styled.div`
 
     &:focus {
       outline: none;
-      border-color: #D4AF37;
+      border-color: #C9A876;
       box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
     }
   }
@@ -471,8 +488,126 @@ const ArrayInput = styled.div`
   }
 `
 
+const VariationsTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 12px;
+
+  thead {
+    background: #f5f5f5;
+  }
+
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 14px;
+  }
+
+  th {
+    font-weight: 600;
+    color: #333;
+    background: #f8f9fa;
+  }
+
+  td {
+    color: #555;
+  }
+
+  input[type="number"] {
+    width: 80px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+
+    &:focus {
+      outline: none;
+      border-color: #C9A876;
+      box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+    }
+  }
+
+  tr:hover {
+    background: #f8f9fa;
+  }
+`
+
+const VariationsSection = styled.div`
+  margin-top: 20px;
+  padding: 16px;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+
+  h4 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 16px;
+  }
+
+  .preview-text {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+  }
+
+  .bulk-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    align-items: center;
+    flex-wrap: wrap;
+
+    label {
+      font-size: 14px;
+      color: #555;
+    }
+
+    input {
+      width: 80px;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+
+      &:focus {
+        outline: none;
+        border-color: #C9A876;
+      }
+    }
+
+    button {
+      padding: 6px 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+
+      &:hover {
+        background: #5568d3;
+      }
+    }
+  }
+
+  .no-variations {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 14px;
+  }
+`
+
 const SubmitBtn = styled.button`
-  background: #D4AF37;
+  background: #C9A876;
   color: white;
   border: none;
   padding: 14px 32px;
@@ -484,7 +619,7 @@ const SubmitBtn = styled.button`
   font-size: 16px;
 
   &:hover {
-    background: #c99820;
+    background: #1a1a1a;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
@@ -519,7 +654,7 @@ const ImageUploadSection = styled.div`
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #D4AF37;
+    border-color: #C9A876;
     background: rgba(212, 175, 55, 0.05);
   }
 
@@ -570,8 +705,8 @@ const ImageViewCard = styled.div`
     transition: all 0.2s;
 
     &:hover {
-      border-color: #D4AF37;
-      color: #D4AF37;
+      border-color: #C9A876;
+      color: #C9A876;
     }
   }
 
@@ -616,7 +751,7 @@ const CategorySelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #D4AF37;
+    border-color: #C9A876;
     box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
   }
   
@@ -691,11 +826,80 @@ const AdminProducts: React.FC = () => {
     return 0
   }
 
+  // Helper: get total stock for a product (sum of all variations)
+  const getTotalStock = (p: any) => {
+    if (p == null || !p.variations || !Array.isArray(p.variations)) return 0
+    return p.variations.reduce((sum: number, v: any) => {
+      const qty = v?.inventory?.quantity || 0
+      return sum + qty
+    }, 0)
+  }
+
+  // Helper: get out of stock variations count
+  const getOutOfStockCount = (p: any) => {
+    if (p == null || !p.variations || !Array.isArray(p.variations)) return 0
+    return p.variations.filter((v: any) => (v?.inventory?.quantity || 0) === 0).length
+  }
+
+  // Helper: generate all possible variations based on current sizes and colors
+  const generateVariationsList = () => {
+    const sizes = formData.sizes.filter(s => s.trim())
+    const colors = formData.colors.filter(c => c.trim())
+    
+    if (sizes.length === 0 || colors.length === 0) return []
+    
+    const variations: Array<{ size: string; color: string; key: string }> = []
+    for (const color of colors) {
+      for (const size of sizes) {
+        variations.push({
+          size: size.toUpperCase(),
+          color: color,
+          key: `${size.toUpperCase()}-${color}`
+        })
+      }
+    }
+    return variations
+  }
+
+  // Helper: get stock for a variation
+  const getVariationStock = (key: string): number => {
+    if (!formData.variationStocks) return parseInt(formData.stock) || 10
+    return formData.variationStocks[key] !== undefined 
+      ? parseInt(String(formData.variationStocks[key])) 
+      : parseInt(formData.stock) || 10
+  }
+
+  // Helper: set stock for a variation
+  const setVariationStock = (key: string, quantity: number) => {
+    setFormData(prev => ({
+      ...prev,
+      variationStocks: {
+        ...(prev.variationStocks || {}),
+        [key]: quantity
+      }
+    }))
+  }
+
+  // Helper: bulk apply stock to all variations
+  const bulkApplyStock = () => {
+    const quantity = parseInt(formData.stock) || 10
+    const variations = generateVariationsList()
+    const newStocks: Record<string, number> = {}
+    variations.forEach(v => {
+      newStocks[v.key] = quantity
+    })
+    setFormData(prev => ({
+      ...prev,
+      variationStocks: newStocks
+    }))
+  }
+
   // Form data
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
+    stock: '10', // Default stock quantity for bulk apply
     sizes: [] as string[],
     colors: [] as string[],
     category: '',
@@ -703,6 +907,7 @@ const AdminProducts: React.FC = () => {
     materials: [] as string[],
     careInstructions: [] as string[],
     stockStatus: 'in_stock',
+    variationStocks: {} as Record<string, number>, // Key: "SIZE-COLOR", Value: quantity
     images: {
       front: { file: null as File | null, preview: '' },
       back: { file: null as File | null, preview: '' },
@@ -854,13 +1059,15 @@ const AdminProducts: React.FC = () => {
       name: '', 
       description: '', 
       price: '', 
-      sizes: [], 
-      colors: [],
+      stock: '10',
+      sizes: [] as string[], 
+      colors: [] as string[],
       category: '',
-      occasions: [],
-      materials: [],
-      careInstructions: [],
+      occasions: [] as string[],
+      materials: [] as string[],
+      careInstructions: [] as string[],
       stockStatus: 'in_stock',
+      variationStocks: {},
       images: {
         front: { file: null, preview: '' },
         back: { file: null, preview: '' },
@@ -923,6 +1130,7 @@ const AdminProducts: React.FC = () => {
       name: product.name || '',
       description: product.description || '',
       price: (getProductPrice(product) || 0).toString(),
+      stock: '10', // Default, will be managed per variation
       sizes: product.sizes || [],
       colors: product.colors || [],
       category: product.category?._id || '',
@@ -930,6 +1138,7 @@ const AdminProducts: React.FC = () => {
       materials: materialsStrings,
       careInstructions: product.careInstructions || [],
       stockStatus: product.stockStatus || 'in_stock',
+      variationStocks: {},
       images: {
         front: { file: null, preview: frontPreview },
         back: { file: null, preview: backPreview },
@@ -947,13 +1156,15 @@ const AdminProducts: React.FC = () => {
       name: '', 
       description: '', 
       price: '', 
-      sizes: [], 
-      colors: [],
+      stock: '10',
+      sizes: [] as string[], 
+      colors: [] as string[],
       category: '',
-      occasions: [],
-      materials: [],
-      careInstructions: [],
+      occasions: [] as string[],
+      materials: [] as string[],
+      careInstructions: [] as string[],
       stockStatus: 'in_stock',
+      variationStocks: {},
       images: {
         front: { file: null, preview: '' },
         back: { file: null, preview: '' },
@@ -1069,6 +1280,7 @@ const AdminProducts: React.FC = () => {
     try {
       const sizes = formData.sizes.filter(s => s.trim())
       const colors = formData.colors.filter(c => c.trim())
+      const stockQuantity = parseInt(formData.stock) || 10
 
       // Generate variations from sizes and colors
       const variations: any[] = []
@@ -1092,6 +1304,11 @@ const AdminProducts: React.FC = () => {
       let skuCounter = 1
       for (const color of colors) {
         for (const size of sizes) {
+          const variationKey = `${size.toUpperCase()}-${color}`
+          const variationStock = formData.variationStocks[variationKey] !== undefined 
+            ? parseInt(String(formData.variationStocks[variationKey])) 
+            : stockQuantity
+
           variations.push({
             size: size.toUpperCase(),
             color: color,
@@ -1099,7 +1316,7 @@ const AdminProducts: React.FC = () => {
             sku: `${formData.name.toUpperCase().replace(/\s+/g, '-')}-${color.toUpperCase()}-${size.toUpperCase()}-${skuCounter}`,
             price: parseFloat(formData.price),
             inventory: {
-              quantity: 10,
+              quantity: variationStock,
               lowStockThreshold: 5,
               allowBackorder: false
             },
@@ -1658,6 +1875,7 @@ const AdminProducts: React.FC = () => {
               <th>Name</th>
               <th>Category</th>
               <th>Price</th>
+              <th>Stock</th>
               <th>Description</th>
               <th>Sizes</th>
               <th>Colors</th>
@@ -1686,6 +1904,16 @@ const AdminProducts: React.FC = () => {
                   <td>{product.name}</td>
                   <td>{product.category?.name || product.category || '—'}</td>
                   <td>₦{getProductPrice(product).toLocaleString()}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>{getTotalStock(product)}</span>
+                      {getOutOfStockCount(product) > 0 && (
+                        <span style={{ fontSize: '12px', color: '#ff6b6b', fontWeight: 600 }}>
+                          ({getOutOfStockCount(product)} out)
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td>{product.description?.substring(0, 50) || '—'}...</td>
                   <td>{uniqueSizes.length > 0 ? uniqueSizes.join(', ') : '—'}</td>
                   <td>{uniqueColors.length > 0 ? uniqueColors.join(', ') : '—'}</td>
@@ -1790,6 +2018,20 @@ const AdminProducts: React.FC = () => {
           </FormGroup>
 
           <FormGroup>
+            <label>Stock Quantity (per variation) *</label>
+            <small style={{ color: '#666', display: 'block', marginBottom: '8px' }}>
+              Set the number of items available for each size and color combination. For example, if you have 3 sizes and 2 colors, each variation will have this quantity.
+            </small>
+            <input
+              type="number"
+              value={formData.stock}
+              onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+              placeholder="e.g., 10"
+              min="0"
+            />
+          </FormGroup>
+
+          <FormGroup>
             <label>Product Images (Front, Back, Side Views)</label>
             <small style={{ color: '#666', display: 'block', marginBottom: '12px' }}>
               Upload images from different angles to help customers see your product
@@ -1878,6 +2120,59 @@ const AdminProducts: React.FC = () => {
               <button className="add-btn" onClick={addColor}>+ Add Color</button>
             </ArrayInput>
           </FormGroup>
+
+          {formData.sizes.length > 0 && formData.colors.length > 0 && (
+            <VariationsSection>
+              <h4>Stock Quantity Per Variation</h4>
+              <p className="preview-text">
+                You have {generateVariationsList().length} variations based on your sizes and colors. Set the stock quantity for each:
+              </p>
+              
+              <div className="bulk-controls">
+                <label>Bulk Apply:</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  placeholder="Quantity"
+                />
+                <button type="button" onClick={bulkApplyStock}>
+                  Apply to All Variations
+                </button>
+              </div>
+
+              {generateVariationsList().length > 0 ? (
+                <VariationsTable>
+                  <thead>
+                    <tr>
+                      <th>Size</th>
+                      <th>Color</th>
+                      <th>Stock Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generateVariationsList().map((variation) => (
+                      <tr key={variation.key}>
+                        <td>{variation.size}</td>
+                        <td>{variation.color}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            value={getVariationStock(variation.key)}
+                            onChange={(e) => setVariationStock(variation.key, parseInt(e.target.value) || 0)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </VariationsTable>
+              ) : (
+                <div className="no-variations">Add sizes and colors to manage variation stock</div>
+              )}
+            </VariationsSection>
+          )}
 
           <FormGroup>
             <label>Variation Images (per color)</label>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 import { BarChart3, Users, Package, TrendingUp, Eye, ArrowRight, ArrowLeft, LogOut } from 'lucide-react'
-import { DashboardHeader, Avatar, IconOnlyButton, SmallStatsGrid, SquareStatCard, DesktopStatsWrapper } from '../components/admin/UI'
+import { DashboardHeader, Avatar, IconOnlyButton, TextButton, SmallStatsGrid, SquareStatCard, DesktopStatsWrapper } from '../components/admin/UI'
 import { useAuth } from '../contexts/AuthContext'
 import { Order } from '../types/Order'
 import { useNavigate } from 'react-router-dom'
@@ -16,10 +16,12 @@ const Container = styled.div`
   min-height: 100vh;
 
   @media (max-width: 768px) {
-    padding: 16px;
+    padding: 0;
     margin: 0;
     min-height: 100vh;
     background: #ffffff;
+    display: flex;
+    flex-direction: column;
   }
 `
 
@@ -45,7 +47,7 @@ const OrdersContainer = styled.div`
 
 const OrderCard = styled.div<{ isActive?: boolean }>`
   background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
-  border: 2px solid ${props => props.isActive ? '#D4AF37' : '#e0e0e0'};
+  border: 2px solid ${props => props.isActive ? '#C9A876' : '#e0e0e0'};
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -55,7 +57,7 @@ const OrderCard = styled.div<{ isActive?: boolean }>`
   justify-content: space-between;
 
   ${props => props.isActive && `
-    border-color: #D4AF37;
+    border-color: #C9A876;
     box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2);
     transform: translateY(-2px);
   `}
@@ -171,7 +173,7 @@ const NavigationControls = styled.div`
 `
 
 const NavButton = styled.button<{ disabled?: boolean }>`
-  background: #D4AF37;
+  background: #C9A876;
   color: white;
   border: none;
   border-radius: 8px;
@@ -187,7 +189,7 @@ const NavButton = styled.button<{ disabled?: boolean }>`
   opacity: ${props => props.disabled ? 0.4 : 1};
 
   &:hover:not(:disabled) {
-    background: #c99820;
+    background: #1a1a1a;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
@@ -207,15 +209,20 @@ const NavButton = styled.button<{ disabled?: boolean }>`
 
 
 const Header = styled.div`
+  background: #1a1a1a;
+  color: white;
+  padding: 24px;
+  margin: -40px -24px 32px -24px;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
-  position: relative;
+  gap: 16px;
 
   h1 {
     font-size: 28px;
-    color: #1a1a1a;
+    color: white;
     margin: 0;
     display: flex;
     align-items: center;
@@ -225,16 +232,14 @@ const Header = styled.div`
 
   @media (max-width: 768px) {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
     gap: 12px;
     padding: 16px;
-    background: #ffffff;
-    border-bottom: 1px solid #e0e0e0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    margin: 0 -16px 24px -16px;
+    margin: -40px -16px 12px -16px;
     width: calc(100% + 32px);
+    border-radius: 0;
+    margin-top: 12px;
   }
 `
 
@@ -244,20 +249,23 @@ const HeaderActions = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+    gap: 12px;
+  }
 `
 
 
 const WelcomeMessage = styled.p`
-  color: white;
-  font-size: 1rem;
-  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+  margin: 4px 0 0 0;
   font-weight: 500;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  text-align: center;
 
   @media (max-width: 768px) {
-    font-size: 14px;
-    color: white;
+    font-size: 0.9rem;
   }
 `
 
@@ -287,7 +295,7 @@ const StatCard = styled.div`
 const IconWrapper = styled.div`
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #ff1493 0%, #ff69b4 100%);
+  background: linear-gradient(135deg, #C9A876 0%, #1a1a1a 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -334,6 +342,8 @@ const MainContent = styled.div`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 0;
+    margin-top: 16px;
   }
 `
 
@@ -342,6 +352,14 @@ const Section = styled.div`
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  @media (max-width: 768px) {
+    border-radius: 0;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #f0f0f0;
+    margin: 0;
+  }
 `
 
 const SectionTitle = styled.h2`
@@ -355,7 +373,7 @@ const SectionTitle = styled.h2`
   svg {
     width: 20px;
     height: 20px;
-    color: #ff1493;
+    color: #C9A876;
   }
 `
 
@@ -429,9 +447,9 @@ const ActionButton = styled.button`
   text-align: left;
 
   &:hover {
-    border-color: #ff1493;
-    background: #fff5f9;
-    color: #ff1493;
+    border-color: #C9A876;
+    background: #fdf7f0;
+    color: #C9A876;
   }
 
   svg {
@@ -464,7 +482,7 @@ const LoadingSpinner = styled.div`
   height: 24px;
   border: 3px solid rgba(255, 20, 147, 0.2);
   border-radius: 50%;
-  border-top-color: #ff1493;
+  border-top-color: #C9A876;
   animation: spin 1s ease-in-out infinite;
 
   @keyframes spin {
@@ -578,39 +596,34 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <Container>
-<DashboardHeader>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', backgroundColor: 'transparent', borderBottom: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Avatar>{user?.firstName?.[0] || 'A'}</Avatar>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
-                  Admin Dashboard
-                </h1>
-                <WelcomeMessage>Welcome back, {user?.firstName}!</WelcomeMessage>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconOnlyButton onClick={() => navigate('/') } aria-label="Back">
-                <ArrowLeft />
-              </IconOnlyButton>
-              <IconOnlyButton onClick={async () => {
-                try {
-                  await logout();
-                  navigate('/');
-                  toast.success('Logged out successfully');
-                } catch (error) {
-                  // Clear local session even if backend logout fails
-                  localStorage.removeItem('authToken');
-                  localStorage.removeItem('userData');
-                  navigate('/');
-                  toast.success('Logged out successfully');
-                }
-              }} aria-label="Logout">
-                <LogOut />
-              </IconOnlyButton>
-            </div>
+      <Header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center', flexDirection: 'column', textAlign: 'center' }}>
+          <Avatar>{user?.firstName?.[0] || 'A'}</Avatar>
+          <div>
+            <h1>Dashboard</h1>
+            <WelcomeMessage>Welcome back, {user?.firstName}!</WelcomeMessage>
           </div>
-        </DashboardHeader>
+        </div>
+        <HeaderActions>
+          <IconOnlyButton onClick={() => navigate('/')} aria-label="Back to home">
+            <ArrowLeft size={20} />
+          </IconOnlyButton>
+          <IconOnlyButton onClick={async () => {
+            try {
+              await logout();
+              navigate('/');
+              toast.success('Logged out successfully');
+            } catch (error) {
+              // Clear local session even if backend logout fails
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('userData');
+              navigate('/');
+            }
+          }} aria-label="Logout">
+            <LogOut size={20} />
+          </IconOnlyButton>
+        </HeaderActions>
+      </Header>
 
       <SmallStatsGrid>
         <SquareStatCard>
@@ -736,6 +749,10 @@ const AdminDashboard: React.FC = () => {
             </ActionButton>
             <ActionButton onClick={() => navigate('/admin/users')}>
               <span>Manage Users</span>
+              <ArrowRight />
+            </ActionButton>
+            <ActionButton onClick={() => navigate('/admin/newsletter')}>
+              <span>Newsletter Manager</span>
               <ArrowRight />
             </ActionButton>
           </QuickActions>

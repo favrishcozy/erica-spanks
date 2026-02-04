@@ -1,16 +1,16 @@
 export const theme = {
   colors: {
-    // Primary brand colors - Oh Polly inspired with Erica Spanks touch
-    primary: '#FF1493',       // Hot Pink - main brand color
-    primaryDark: '#E91E63',   // Darker pink for hover states
-    primaryLight: '#FFB6E1',  // Light pink for backgrounds
+    // Primary brand colors - Beige, White, Black theme
+    primary: '#C9A876',       // Beige - main brand color
+    primaryDark: '#1a1a1a',   // Black for contrast
+    primaryLight: '#E8D4B8',  // Light beige for backgrounds
     
     // Secondary colors
     secondary: '#000000',     // Pure black for contrast
-    accent: '#FF69B4',        // Bright pink accent
-    blush: '#FFC0CB',         // Soft blush pink
-    nude: '#F5DEB3',          // Nude tone
-    rose: '#FF1744',          // Rose red for urgency
+    accent: '#1a1a1a',        // Black accent
+    blush: '#E8D4B8',         // Soft beige
+    nude: '#C9A876',          // Beige tone
+    rose: '#1a1a1a',          // Black for urgency/accents
     
     // Neutral colors
     white: '#FFFFFF',

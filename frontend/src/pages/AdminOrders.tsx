@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { Package, Edit2, Filter, X, ArrowLeft } from 'lucide-react'
 import { IconOnlyButton, DashboardHeader, Avatar } from '../components/admin/UI'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -21,12 +22,12 @@ const Container = styled.div`
 `
 
 const Header = styled.div`
-  background: linear-gradient(135deg, #D4AF37 0%, #c99820 100%);
+  background: #1a1a1a;
   color: white;
   padding: 24px;
   margin: -40px -24px 32px -24px;
   border-radius: 0 0 20px 20px;
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -43,12 +44,26 @@ const Header = styled.div`
   }
 
   @media (max-width: 768px) {
-    margin: -40px -16px 32px -16px;
+    flex-direction: column;
+    align-items: center;
+    margin: -40px -16px 12px -16px;
     width: calc(100% + 32px);
     padding: 16px;
-    flex-wrap: wrap;
     gap: 12px;
-    border-radius: 0 0 16px 16px;
+    border-radius: 0;
+    margin-top: 12px;
+
+    h1 {
+      font-size: 22px;
+      width: 100%;
+      order: 1;
+      text-align: center;
+    }
+
+    > :last-child {
+      width: 100%;
+      order: 2;
+    }
   }
 `
 
@@ -112,9 +127,9 @@ const StatusFilter = styled.div`
 
 const StatusTag = styled.button<{ $active?: boolean }>`
   padding: 8px 16px;
-  border: 2px solid ${({ $active }) => ($active ? '#ff1493' : '#e0e0e0')};
-  background: ${({ $active }) => ($active ? '#fff5f9' : 'white')};
-  color: ${({ $active }) => ($active ? '#ff1493' : '#666')};
+  border: 2px solid ${({ $active }) => ($active ? '#C9A876' : '#e0e0e0')};
+  background: ${({ $active }) => ($active ? '#fdf7f0' : 'white')};
+  color: ${({ $active }) => ($active ? '#C9A876' : '#666')};
   border-radius: 20px;
   cursor: pointer;
   font-weight: 600;
@@ -122,8 +137,8 @@ const StatusTag = styled.button<{ $active?: boolean }>`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #ff1493;
-    color: #ff1493;
+    border-color: #C9A876;
+    color: #C9A876;
   }
 
   @media (max-width: 768px) {
@@ -272,7 +287,7 @@ const ActionButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: #ff1493;
+    background: #C9A876;
     color: white;
   }
 
@@ -294,8 +309,8 @@ const Pagination = styled.div`
 const PaginationButton = styled.button<{ $active?: boolean }>`
   width: 36px;
   height: 36px;
-  border: 2px solid ${({ $active }) => ($active ? '#ff1493' : '#e0e0e0')};
-  background: ${({ $active }) => ($active ? '#ff1493' : 'white')};
+  border: 2px solid ${({ $active }) => ($active ? '#C9A876' : '#e0e0e0')};
+  background: ${({ $active }) => ($active ? '#C9A876' : 'white')};
   color: ${({ $active }) => ($active ? 'white' : '#1a1a1a')};
   border-radius: 6px;
   cursor: pointer;
@@ -303,7 +318,7 @@ const PaginationButton = styled.button<{ $active?: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #ff1493;
+    border-color: #C9A876;
   }
 
   &:disabled {
@@ -387,14 +402,14 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #ff1493;
+    border-color: #C9A876;
   }
 `
 
 const SubmitButton = styled.button`
   width: 100%;
   padding: 12px;
-  background: #ff1493;
+  background: #C9A876;
   color: white;
   border: none;
   border-radius: 8px;
@@ -447,6 +462,7 @@ const AdminOrders: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [newStatus, setNewStatus] = useState('')
   const [updating, setUpdating] = useState(false)
+  const navigate = useNavigate()
 
   const statuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
 
@@ -511,7 +527,7 @@ const AdminOrders: React.FC = () => {
           <Package />
           Order Management
         </h1>
-        <IconOnlyButton onClick={() => window.location.href = '/admin/dashboard'} aria-label="Back">
+        <IconOnlyButton onClick={() => navigate('/admin/dashboard')} aria-label="Back">
           <ArrowLeft />
         </IconOnlyButton>
       </Header>

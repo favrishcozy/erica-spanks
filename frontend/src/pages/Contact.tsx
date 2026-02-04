@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
-import { Mail, Phone, MapPin, Instagram, MessageCircle, Send } from 'lucide-react'
+import { Mail, Phone, MapPin, Instagram, MessageCircle, Send, Music } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const ContactContainer = styled.div`
@@ -225,15 +225,15 @@ const SocialLink = styled.a`
   align-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.lg};
-  background: ${({ theme }) => theme.colors.accent};
+  background: ${({ theme }) => theme.colors.primary};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  color: ${({ theme }) => theme.colors.black};
+  color: ${({ theme }) => theme.colors.white};
   text-decoration: none;
   font-weight: ${({ theme }) => theme.fontWeights.medium};
   transition: ${({ theme }) => theme.transitions.fast};
   
   &:hover {
-    background: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primaryDark};
     color: ${({ theme }) => theme.colors.white};
     transform: translateY(-2px);
   }
@@ -441,7 +441,8 @@ const Contact: React.FC = () => {
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  📱 TikTok
+                  <Music size={20} />
+                  TikTok
                 </SocialLink>
               </SocialGrid>
             </SocialSection>

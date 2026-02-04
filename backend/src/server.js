@@ -26,7 +26,6 @@ import newsletterRoutes from './routes/newsletter.js'
 import adminRoutes from './routes/admin.js'
 import uploadRoutes from './routes/upload.js'
 import webhooksRoutes from './routes/webhooks.js'
-import { getEmailTransporter } from './utils/emailService.js'
 import occasionsRoutes from './routes/occasions.js'
 
 // Import middleware
@@ -196,20 +195,7 @@ const startServer = async () => {
     } catch (e) {
       console.log('🔧 CORS enabled (origins list unavailable)')
     }
-    // Verify SMTP transporter connectivity to help diagnose email issues
-    try {
-      const transporter = getEmailTransporter()
-      if (transporter && typeof transporter.verify === 'function') {
-        transporter.verify()
-          .then(() => console.log('📧 SMTP transporter verified: ready to send emails'))
-          .catch(err => console.error('📧 SMTP transporter verification failed:', err && err.message ? err.message : err))
-      } else {
-        console.warn('📧 SMTP transporter not available for verification')
-      }
-    } catch (err) {
-      console.error('📧 Error during SMTP transporter verification:', err)
-    }
-  })
+      })
 
   return server
 }

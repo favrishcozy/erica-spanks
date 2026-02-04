@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { Users, Mail, Phone, Calendar, ChevronRight, ArrowLeft } from 'lucide-react'
 import { IconOnlyButton, DashboardHeader, Avatar } from '../components/admin/UI'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -19,8 +20,8 @@ const Button = styled.button`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #ff1493;
-    color: #ff1493;
+    border-color: #C9A876;
+    color: #C9A876;
   }
 
   svg {
@@ -45,12 +46,12 @@ const Container = styled.div`
 `
 
 const Header = styled.div`
-  background: linear-gradient(135deg, #D4AF37 0%, #c99820 100%);
+  background: #1a1a1a;
   color: white;
   padding: 24px;
   margin: -40px -24px 32px -24px;
   border-radius: 0 0 20px 20px;
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -73,12 +74,27 @@ const Header = styled.div`
   }
   
   @media (max-width: 768px) {
-    margin: -40px -16px 32px -16px;
+    flex-direction: column;
+    align-items: center;
+    margin: -40px -16px 12px -16px;
     width: calc(100% + 32px);
     padding: 16px;
-    flex-wrap: wrap;
     gap: 12px;
-    border-radius: 0 0 16px 16px;
+    border-radius: 0;
+    margin-top: 12px;
+    
+    h1 {
+      font-size: 22px;
+      width: 100%;
+      order: 1;
+      text-align: center;
+    }
+    
+    > div:last-child {
+      width: 100%;
+      order: 2;
+      text-align: center;
+    }
   }
 `
 
@@ -113,7 +129,7 @@ const UserAvatar = styled.div`
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff1493 0%, #ff69b4 100%);
+  background: linear-gradient(135deg, #C9A876 0%, #d4b59a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,8 +242,8 @@ const Pagination = styled.div`
 const PaginationButton = styled.button<{ $active?: boolean }>`
   width: 36px;
   height: 36px;
-  border: 2px solid ${({ $active }) => ($active ? '#ff1493' : '#e0e0e0')};
-  background: ${({ $active }) => ($active ? '#ff1493' : 'white')};
+  border: 2px solid ${({ $active }) => ($active ? '#C9A876' : '#e0e0e0')};
+  background: ${({ $active }) => ($active ? '#C9A876' : 'white')};
   color: ${({ $active }) => ($active ? 'white' : '#1a1a1a')};
   border-radius: 6px;
   cursor: pointer;
@@ -290,7 +306,7 @@ const LoadingSpinner = styled.div`
   height: 24px;
   border: 3px solid rgba(255, 20, 147, 0.2);
   border-radius: 50%;
-  border-top-color: #ff1493;
+  border-top-color: #C9A876;
   animation: spin 1s ease-in-out infinite;
 
   @keyframes spin {
@@ -314,6 +330,7 @@ const AdminUsers: React.FC = () => {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchUsers()
@@ -367,7 +384,7 @@ const AdminUsers: React.FC = () => {
           </h1>
           <p>Manage all registered users and their accounts</p>
         </div>
-        <IconOnlyButton onClick={() => window.location.href = '/admin/dashboard'} aria-label="Back">
+        <IconOnlyButton onClick={() => navigate('/admin/dashboard')} aria-label="Back">
           <ArrowLeft />
         </IconOnlyButton>
       </Header>

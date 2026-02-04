@@ -372,9 +372,9 @@ const Checkout: React.FC = () => {
 
   const totalPrice = getTotalPrice()
   const totalItems = getTotalItems()
-  const shippingFee = totalPrice > 100000 ? 0 : 1500 // Free shipping over ₦100,000
-  const discountAmount = pointsReservation?.discount_amount || 0
-  const finalTotal = totalPrice + shippingFee - discountAmount
+const shippingFee = 0
+    const discountAmount = pointsReservation?.discount_amount || 0
+    const finalTotal = totalPrice + shippingFee - discountAmount
 
   // Handle payment verification after returning from Paystack
   useEffect(() => {
