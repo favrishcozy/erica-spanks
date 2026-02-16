@@ -324,6 +324,8 @@ productSchema.virtual('stock').get(function() {
 
 // Indexes
 productSchema.index({ name: 1 });
+// Text index for product search
+productSchema.index({ name: 'text', description: 'text', tags: 'text' });
 productSchema.index({ slug: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ tags: 1 });

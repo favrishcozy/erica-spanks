@@ -161,10 +161,10 @@ export const productAPI = {
     }
   },
 
-  // Search products
+  // Search products - uses the main /products endpoint with q parameter
   searchProducts: async (searchTerm: string, params = {}) => {
     try {
-      const response = await api.get('/products/search', { 
+      const response = await api.get('/products', { 
         params: { q: searchTerm, ...params } 
       });
       return response.data;
