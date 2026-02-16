@@ -9,8 +9,6 @@
 # Ignore hidden files in root
 .hushlogin
 
-# Ignore configuration files in root
-vercel.json
 
 # Ignore IDE files
 .vscode/
