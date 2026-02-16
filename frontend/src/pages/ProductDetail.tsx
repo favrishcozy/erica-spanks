@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import { Heart, ShoppingBag, Star, Truck, RotateCcw, Shield, Info, ChevronLeft, ChevronRight, X, Plus, Minus } from 'lucide-react'
 import { useCartStore } from '../stores/cartStore'
 import { useWishlistStore } from '../stores/wishlistStore'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { productAPI } from '../services/api'
 import { formatPrice } from '../utils/currency'
@@ -852,6 +853,7 @@ const ProductDetail: React.FC = () => {
   const navigate = useNavigate()
   const { addItem } = useCartStore()
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
+  const { user } = useAuth()
   
   // State
   const [product, setProduct] = useState<Product | null>(null)
@@ -983,8 +985,13 @@ const ProductDetail: React.FC = () => {
       .map(v => [v.color, { name: v.color, code: v.colorCode }])
   ).values()]
 
-  // Current images: prefer selected variation images (or first match by color), otherwise fallback
-  const currentImages = (currentVariation && currentVariation.images) || product.variations[0]?.images || []
+  // Current images should ONLY depend on color, not size
+  // Find first variation with matching color that has images
+  const colorBasedVariation = selectedColor
+    ? product.variations.find(v => v.color === selectedColor && v.images?.length > 0)
+    : product.variations.find(v => v.images?.length > 0)
+  
+  const currentImages = colorBasedVariation?.images || []
 
   const discount = currentVariation?.compareAtPrice ? 
     Math.round(((currentVariation.compareAtPrice - currentVariation.price) / currentVariation.compareAtPrice) * 100) : 0
@@ -1018,6 +1025,13 @@ const ProductDetail: React.FC = () => {
   
   const toggleWishlist = () => {
     if (!product) return
+    
+    // Check if user is signed in before allowing wishlist operations
+    if (!user) {
+      toast.error('Please sign in to add items to wishlist')
+      navigate('/login')
+      return
+    }
     
     if (isInWishlist(product._id)) {
       removeFromWishlist(product._id)

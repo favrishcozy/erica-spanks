@@ -524,7 +524,6 @@ const Header: React.FC = () => {
   
   const mainNavItems = [
     { path: '/products/new-in', label: 'New In' },
-    { path: '/lookbook', label: 'Lookbook' },
     { path: '/contact', label: 'Contact' },
     { path: '/about', label: 'About' },
   ]
@@ -778,9 +777,6 @@ const Header: React.FC = () => {
                 Admin Panel
               </MobileNavLink>
             )}
-            <MobileNavLink to="/lookbook" onClick={() => setIsMenuOpen(false)}>
-              Lookbook
-            </MobileNavLink>
             <MobileNavLink to="/about" onClick={() => setIsMenuOpen(false)}>
               About Us
             </MobileNavLink>

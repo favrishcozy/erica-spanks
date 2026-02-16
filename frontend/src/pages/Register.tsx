@@ -24,7 +24,7 @@ const ToggleButton = styled.button`
   border: none;
   cursor: pointer;
   font-size: 18px;
-  color: #666;
+  color: #757575;
   transition: color 0.2s ease;
   padding: 5px;
   display: flex;
@@ -32,7 +32,7 @@ const ToggleButton = styled.button`
   justify-content: center;
   
   &:hover {
-    color: #d63384;
+    color: #C9A876;
   }
 `
 

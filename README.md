@@ -29,12 +29,15 @@ A modern, mobile-first e-commerce website for the confident women's fashion bran
 - 📱 Mobile-first responsive design
 - 🛒 Persistent shopping cart
 - 🔐 User authentication & profiles
-- 💳 Secure payment processing
-- 📦 Shipping calculator
+- 💳 Secure payment processing (Paystack)
+- 📦 Lagos delivery system with zone-based pricing
 - 🔍 Product search & filtering
 - 💌 Newsletter subscription
 - 📱 PWA support
-- discount codes (get 1 point or so for purchases over 10,000 naira, points maybe applied in cart checkout and payment)
+- 🎁 Points & rewards system
+- 🧾 Professional PDF invoices with auto-generated numbers
+- 🛡️ Wishlist (authenticated users only)
+- 👥 Admin dashboard with analytics & fee management
 
 ## 🚀 Getting Started
 

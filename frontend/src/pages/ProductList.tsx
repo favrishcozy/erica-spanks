@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useParams, useSearchParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { Filter, Grid, List, Heart, ShoppingBag, Star, X } from 'lucide-react'
 import { useCartStore } from '../stores/cartStore'
 import { useWishlistStore } from '../stores/wishlistStore'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { productAPI } from '../services/api'
 import { Product } from '../types/Product'
@@ -505,10 +506,12 @@ const CloseButton = styled.button`
 const ProductList: React.FC = () => {
   const { category } = useParams<{ category: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   // Support category passed either as route param or as query param (header uses ?category=slug)
   const searchCategory = searchParams.get('category') || ''
   const activeCategory = category || searchCategory
   const { addItem } = useCartStore()
+  const { user } = useAuth()
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
   
   // State - updated with error state
@@ -613,21 +616,22 @@ const ProductList: React.FC = () => {
 
   // Product fetching with API integration
   useEffect(() => {
-    const q = searchParams.get('q') || ''
-    const occasion = searchParams.get('occasion') || ''
     const fetchProducts = async () => {
       try {
         setLoading(true)
         setError(null)
+
+        const q = searchParams.get('q') || ''
+        const occ = searchParams.get('occasion') || ''
 
         let response
 
         if (q) {
           // Use search endpoint when query provided
           response = await productAPI.searchProducts(q)
-        } else if (occasion && occasion !== 'all') {
+        } else if (occ && occ !== 'all') {
           // Use general products endpoint with occasion filter
-          response = await productAPI.getProducts({ occasion })
+          response = await productAPI.getProducts({ occasion: occ })
         } else if (activeCategory && activeCategory !== 'all') {
           // Use category-specific endpoint
           response = await productAPI.getProductsByCategory(activeCategory)
@@ -651,7 +655,7 @@ const ProductList: React.FC = () => {
     }
 
     fetchProducts()
-  }, [category, searchParams.get('q'), searchParams.get('occasion'), searchParams.get('category')])
+  }, [category, activeCategory, searchParams])
   
   // Handle filter changes
   const handleFilterChange = (type: string, value: string | string[]) => {
@@ -662,20 +666,59 @@ const ProductList: React.FC = () => {
   }
   
   // Handle add to cart
-  const handleAddToCart = (product: LocalProduct) => {
+  const handleAddToCart = async (product: LocalProduct) => {
     const variations = product.variations || []
+    
     if (variations.length === 1) {
       const v = variations[0]
-      addItem({
-        id: product._id,
-        name: product.name,
-        price: v.price,
-        image: v.images[0]?.url || '/placeholder.jpg',
-        size: v.size,
-        color: v.color,
-        quantity: 1,
-      })
-      toast.success(`${product.name} added to cart!`)
+      
+      // Validate stock before adding
+      if (v.inventory.quantity <= 0) {
+        toast.error(`${product.name} is out of stock`)
+        return
+      }
+      
+      try {
+        // Validate stock with backend
+        const response = await productAPI.validateStock([{
+          productId: product._id,
+          size: v.size,
+          color: v.color,
+          quantity: 1
+        }])
+        
+        if (!response.allAvailable && response.data) {
+          const unavailableItem = response.data.find((item: { available: boolean }) => !item.available)
+          if (unavailableItem) {
+            toast.error(unavailableItem.error || 'Item is no longer available')
+            return
+          }
+        }
+        
+        addItem({
+          id: product._id,
+          name: product.name,
+          price: v.price,
+          image: v.images[0]?.url || '/placeholder.jpg',
+          size: v.size,
+          color: v.color,
+          quantity: 1,
+        })
+        toast.success(`${product.name} added to cart!`)
+      } catch (error) {
+        console.error('Stock validation error:', error)
+        // Still allow adding to cart if validation fails (fallback)
+        addItem({
+          id: product._id,
+          name: product.name,
+          price: v.price,
+          image: v.images[0]?.url || '/placeholder.jpg',
+          size: v.size,
+          color: v.color,
+          quantity: 1,
+        })
+        toast.success(`${product.name} added to cart!`)
+      }
     } else {
       // Add a placeholder cart item; user will select size/color in cart
       const prices = variations.map(v => Number(v.price) || 0)
@@ -693,6 +736,12 @@ const ProductList: React.FC = () => {
   
   // Handle wishlist toggle
   const toggleWishlist = (productId: string) => {
+    if (!user) {
+      toast.error('Please sign in to add items to wishlist')
+      navigate('/login')
+      return
+    }
+    
     if (isInWishlist(productId)) {
       removeFromWishlist(productId)
       toast.success('Removed from wishlist')

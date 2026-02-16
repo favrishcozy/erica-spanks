@@ -1,6 +1,8 @@
 import express from 'express'
 import Order from '../models/Order.js'
 import * as paymentService from '../services/paymentService.js'
+import * as invoiceService from '../services/invoiceService.js'
+import * as stockService from '../services/stockService.js'
 import { sendEmail, emailTemplates } from '../utils/emailService.js'
 
 const router = express.Router()
@@ -58,7 +60,7 @@ router.post('/paystack', async (req, res) => {
       }
 
       // Update order status
-      const order = await Order.findById(orderId)
+      const order = await Order.findById(orderId).populate('user')
 
       if (!order) {
         console.warn(`Order ${orderId} not found for webhook`)
@@ -66,11 +68,29 @@ router.post('/paystack', async (req, res) => {
       }
 
       // Update payment info
-      order.paymentInfo.status = 'success'
+      order.paymentInfo.status = 'completed'
       order.paymentInfo.transactionId = data.id
       order.paymentInfo.reference = reference
       order.paymentDate = new Date()
       order.status = 'confirmed'
+
+      // Add status history entry
+      order.statusHistory = order.statusHistory || []
+      order.statusHistory.push({
+        status: 'confirmed',
+        updatedBy: 'webhook',
+        note: 'Payment confirmed via Paystack webhook'
+      })
+
+      // Deduct stock using transaction for atomicity
+      const deductionResult = await stockService.deductStockForOrder(orderId)
+      
+      if (!deductionResult.success) {
+        console.error(`❌ Failed to deduct stock for order ${orderId}:`, deductionResult.error)
+        // Don't fail the webhook, but log the issue
+      } else {
+        console.log(`✅ Stock deducted for order ${orderId}`)
+      }
 
       // Award points
       if (order.pricing.subtotal > 0) {
@@ -81,18 +101,39 @@ router.post('/paystack', async (req, res) => {
 
       await order.save()
 
-      // Send confirmation email
-      const statusTemplate = emailTemplates.orderStatusUpdate(
-        {
-          orderId: order._id.toString().slice(-6).toUpperCase(),
-          shipping: order.shipping,
-          items: order.items
-        },
-        'confirmed'
-      )
-      await sendEmail(order.shipping.email, statusTemplate)
+      // Generate invoice (source of truth: webhook, not verify endpoint)
+      try {
+        const existingInvoice = await invoiceService.getOrderInvoice(orderId)
+        console.log('📄 Invoice already exists for order:', existingInvoice._id)
+      } catch (invoiceError) {
+        // No invoice exists, create one
+        try {
+          console.log('📄 Creating invoice for order:', orderId)
+          const invoice = await invoiceService.createInvoiceFromOrder(order, { status: 'sent' })
+          order.invoice = invoice._id
+          await order.save()
+          console.log('✅ Invoice created successfully:', invoice._id)
+        } catch (createError) {
+          console.error('❌ Failed to create invoice:', createError.message)
+          // Log but don't fail the webhook - payment is already confirmed
+        }
+      }
 
-      console.log(`Order ${orderId} payment confirmed via webhook`)
+      // Send confirmation email
+      const userEmail = order.user?.email || order.shippingAddress?.email
+      if (userEmail) {
+        const statusTemplate = emailTemplates.orderStatusUpdate(
+          {
+            orderId: order._id.toString().slice(-6).toUpperCase(),
+            shipping: order.shippingAddress,
+            items: order.items
+          },
+          'confirmed'
+        )
+        sendEmail(userEmail, statusTemplate).catch(err => console.error('Error sending webhook confirmation email:', err))
+      }
+
+      console.log(`✅ Order ${orderId} payment confirmed via webhook`)
     }
 
     // Handle charge.failed event
@@ -105,9 +146,51 @@ router.post('/paystack', async (req, res) => {
         if (order) {
           order.paymentInfo.status = 'failed'
           order.status = 'payment_failed'
+          
+          // Add status history entry
+          order.statusHistory = order.statusHistory || []
+          order.statusHistory.push({
+            status: 'payment_failed',
+            updatedBy: 'webhook',
+            note: 'Payment failed via Paystack webhook'
+          })
+          
+          // Reconcile stock for failed payment
+          const reconciliationResult = await stockService.reconcileStockForOrder(orderId)
+          
+          if (!reconciliationResult.success) {
+            console.error(`❌ Failed to reconcile stock for order ${orderId}:`, reconciliationResult.error)
+          } else {
+            console.log(`✅ Stock reconciled for failed order ${orderId}`)
+          }
+          
           await order.save()
+          console.log(`❌ Order ${orderId} payment failed via webhook`)
+        }
+      }
+    }
+    
+    // Handle charge.pending event (authorization only)
+    if (event === 'charge.pending') {
+      const { metadata } = data
+      const orderId = metadata?.orderId
 
-          console.log(`Order ${orderId} payment failed`)
+      if (orderId) {
+        const order = await Order.findById(orderId)
+        if (order) {
+          order.paymentInfo.status = 'pending'
+          order.status = 'pending'
+          
+          // Add status history entry
+          order.statusHistory = order.statusHistory || []
+          order.statusHistory.push({
+            status: 'pending',
+            updatedBy: 'webhook',
+            note: 'Payment pending via Paystack webhook'
+          })
+          
+          await order.save()
+          console.log(`⏳ Order ${orderId} payment pending via webhook`)
         }
       }
     }

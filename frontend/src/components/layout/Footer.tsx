@@ -201,7 +201,7 @@ const Footer: React.FC = () => {
           </ContactInfo>
           <ContactInfo>
             <Phone size={16} />
-            <span>+234 902 713 4581</span>
+            <span>+234 811 332 2121</span>
           </ContactInfo>
           <ContactInfo>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -209,7 +209,7 @@ const Footer: React.FC = () => {
               <path d="M12 6c-3.314 0-6 2.686-6 6 0 1.012.259 1.965.707 2.793l-1.414 4.828 4.923-1.292A5.96 5.96 0 0 0 18 12c0-3.314-2.686-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="currentColor"/>
               <path d="M15.5 8.5c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5z" fill="currentColor"/>
             </svg>
-            <span>WhatsApp: +234 902 713 4581</span>
+            <span>WhatsApp: +234 811 332 2121</span>
           </ContactInfo>
           <ContactInfo>
             <MapPin size={16} />

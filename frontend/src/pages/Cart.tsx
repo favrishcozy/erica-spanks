@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react"
 import styled, { keyframes } from "styled-components"
 import { useCartStore } from "../stores/cartStore"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { productAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -399,6 +399,7 @@ const StyledLink = styled(Link)`
 `
 
 const Cart: React.FC = () => {
+  const navigate = useNavigate()
   const {
     items,
     addItem,
@@ -530,7 +531,7 @@ const Cart: React.FC = () => {
   }
 
   const handleContinueShopping = () => {
-    window.history.back()
+    navigate('/products')
   }
 
   return (

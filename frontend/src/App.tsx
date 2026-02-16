@@ -25,7 +25,11 @@ import Lookbook from './pages/Lookbook'
 import Wishlist from './pages/Wishlist'
 import SizeGuide from './pages/SizeGuide'
 import OrderConfirmation from './pages/OrderConfirmation'
+import OrderVerify from './pages/OrderVerify'
+import OrderSuccess from './pages/OrderSuccess'
 import OrderHistory from './pages/OrderHistory'
+import OrderFailed from './pages/OrderFailed'
+import InvoiceHistory from './pages/InvoiceHistory'
 import '@fontsource/montserrat/400.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/playfair-display/700.css';
@@ -49,10 +53,14 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+              <Route path="/order/verify" element={<OrderVerify />} />
+              <Route path="/order/success/:reference" element={<OrderSuccess />} />
+                <Route path="/order/failed/:orderId" element={<OrderFailed />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+              <Route path="/invoices" element={<ProtectedRoute><InvoiceHistory /></ProtectedRoute>} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/lookbook" element={<Lookbook />} />

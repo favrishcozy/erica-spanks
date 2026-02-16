@@ -341,6 +341,43 @@ const orderSchema = new mongoose.Schema({
       ref: 'User'
     },
     tags: [String]
+  },
+
+  // Delivery/Shipping Information (Lagos Delivery System)
+  deliveryMethod: {
+    type: String,
+    enum: ['delivery', 'pickup'],
+    default: 'delivery'
+  },
+
+  deliveryArea: {
+    type: String,
+    trim: true,
+    default: null
+  },
+
+  deliveryZone: {
+    type: String,
+    enum: [
+      'MAINLAND_A', 'MAINLAND_B', 'MAINLAND_C', 'MAINLAND_D',
+      'MAINLAND_E', 'MAINLAND_F', 'MAINLAND_G',
+      'ISLAND_A', 'ISLAND_B', 'ISLAND_C',
+      null
+    ],
+    default: null
+  },
+
+  deliveryFee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
+  // Reference to generated invoice
+  invoice: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Invoice',
+    default: null
   }
 }, {
   timestamps: true,
@@ -349,6 +386,11 @@ const orderSchema = new mongoose.Schema({
 })
 
 // Virtuals
+orderSchema.virtual('orderId').get(function() {
+  // Return the order number as orderId for frontend compatibility
+  return this.orderNumber || this._id.toString()
+})
+
 orderSchema.virtual('totalItems').get(function() {
   try {
     return this.items ? this.items.reduce((total, item) => total + (item.quantity || 0), 0) : 0

@@ -721,6 +721,111 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 })
 
+// @desc    Validate stock for cart items
+// @route   POST /api/products/validate-stock
+// @access  Public
+router.post('/validate-stock', async (req, res) => {
+  try {
+    const { items } = req.body
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Items array is required'
+      })
+    }
+
+    const validationResults = []
+    let allAvailable = true
+
+    for (const item of items) {
+      const product = await Product.findById(item.productId)
+      
+      if (!product) {
+        validationResults.push({
+          productId: item.productId,
+          available: false,
+          error: 'Product not found'
+        })
+        allAvailable = false
+        continue
+      }
+
+      // Find matching variation
+      const variation = product.variations?.find(
+        v => v.size === item.size && v.color === item.color
+      )
+
+      if (!variation) {
+        validationResults.push({
+          productId: item.productId,
+          productName: product.name,
+          size: item.size,
+          color: item.color,
+          available: false,
+          error: 'Variation not found'
+        })
+        allAvailable = false
+        continue
+      }
+
+      // Check if variation is out of stock
+      if (!variation.inventory || variation.inventory.quantity === 0) {
+        validationResults.push({
+          productId: item.productId,
+          productName: product.name,
+          size: item.size,
+          color: item.color,
+          available: false,
+          availableQuantity: 0,
+          error: 'Out of stock'
+        })
+        allAvailable = false
+        continue
+      }
+
+      // Check if requested quantity exceeds available stock
+      const availableQty = variation.inventory.quantity
+      if (availableQty < item.quantity) {
+        validationResults.push({
+          productId: item.productId,
+          productName: product.name,
+          size: item.size,
+          color: item.color,
+          available: false,
+          availableQuantity: availableQty,
+          requestedQuantity: item.quantity,
+          error: `Only ${availableQty} item(s) available`
+        })
+        allAvailable = false
+        continue
+      }
+
+      // Item is available
+      validationResults.push({
+        productId: item.productId,
+        productName: product.name,
+        size: item.size,
+        color: item.color,
+        available: true,
+        availableQuantity: availableQty
+      })
+    }
+
+    res.json({
+      success: true,
+      allAvailable,
+      data: validationResults
+    })
+  } catch (error) {
+    console.error('Error validating stock:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Server error validating stock'
+    })
+  }
+})
+
 // @desc    Get single product by ID or slug
 // @route   GET /api/products/:id
 // @access  Public (with optional auth for personalization)

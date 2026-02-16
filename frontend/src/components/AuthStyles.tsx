@@ -26,14 +26,14 @@ export const FormWrapper = styled.div`
 `
 
 export const Title = styled.h1`
-  color: #d63384;
+  color: #C9A876;
   margin-bottom: 10px;
   font-size: 28px;
   font-weight: 700;
 `
 
 export const Subtitle = styled.p`
-  color: #777;
+  color: #757575;
   margin-bottom: 25px;
 `
 
@@ -42,20 +42,20 @@ export const Input = styled.input`
   padding: 12px;
   margin-bottom: 15px;
   border-radius: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #E0E0E0;
   font-size: 16px;
   transition: all 0.2s ease;
 
   &:focus {
-    border-color: #d63384;
+    border-color: #C9A876;
     outline: none;
-    box-shadow: 0 0 0 2px rgba(214, 51, 132, 0.2);
+    box-shadow: 0 0 0 2px rgba(201, 168, 118, 0.2);
   }
 `
 
 export const AuthButton = styled.button`
   width: 100%;
-  background: #d63384;
+  background: #C9A876;
   color: white;
   border: none;
   padding: 12px;
@@ -66,22 +66,22 @@ export const AuthButton = styled.button`
   transition: all 0.3s ease;
 
   &:hover {
-    background: #b02a6b;
+    background: #B8956A;
   }
 `
 
 export const SwitchText = styled.p`
   margin-top: 20px;
-  color: #777;
+  color: #757575;
 
   a {
-    color: #d63384;
+    color: #C9A876;
     font-weight: 600;
     text-decoration: none;
     transition: color 0.2s ease;
 
     &:hover {
-      color: #b02a6b;
+      color: #B8956A;
     }
   }
 `

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { Heart, ShoppingBag, Eye, Star } from 'lucide-react'
 import { useCartStore } from '../../stores/cartStore'
 import { useWishlistStore } from '../../stores/wishlistStore'
+import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { getCategoryName, getMainImage, calculateDiscount, formatPrice, validateProduct, Product } from '../../utils/productHelpers'
 import QuickViewModal from './QuickViewModal'
@@ -375,8 +376,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
   const [isHovered, setIsHovered] = useState(false)
   const [selectedColor, setSelectedColor] = useState(colors?.[0] || '')
   const [quickViewOpen, setQuickViewOpen] = useState(false)
+  const { user } = useAuth()
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
   const { addItem } = useCartStore()
+  const navigate = useNavigate()
 
   const isWishlisted = isInWishlist(productId)
   const formattedPrice = formatPrice(price)
@@ -385,6 +388,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    if (!user) {
+      toast.error('Please sign in to add items to wishlist')
+      navigate('/login')
+      return
+    }
     
     if (isWishlisted) {
       removeFromWishlist(productId)

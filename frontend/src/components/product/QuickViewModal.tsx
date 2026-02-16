@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import { X, Heart, ShoppingBag, Star } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../../stores/cartStore'
 import { useWishlistStore } from '../../stores/wishlistStore'
+import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { Product, getMainImage, formatPrice, getCategoryName } from '../../utils/productHelpers'
 
@@ -286,7 +288,9 @@ const WishlistButton = styled.button<{ $active: boolean }>`
 
 const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClose }) => {
   const { addItem } = useCartStore()
+  const { user } = useAuth()
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore()
+  const navigate = useNavigate()
   
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
@@ -358,6 +362,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   }
   
   const handleWishlistToggle = () => {
+    if (!user) {
+      toast.error('Please sign in to add items to wishlist')
+      navigate('/login')
+      return
+    }
+    
     if (isWishlisted) {
       removeFromWishlist(productId)
       toast.success('Removed from wishlist')

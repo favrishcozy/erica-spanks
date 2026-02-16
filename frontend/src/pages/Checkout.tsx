@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
-import { orderAPI } from '../services/api'
+import { orderAPI, shippingAPI } from '../services/api'
 import { productAPI } from '../services/api'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 import PointsRedemptionWidget from '../components/PointsRedemptionWidget'
 import paystackLogo from '../images/paystack_logo.jpeg'
+import { Loader } from 'lucide-react'
 
 // Animations
 const fadeIn = keyframes`
@@ -349,6 +351,104 @@ const LoadingSpinner = styled.div`
   margin: 0 auto;
 `
 
+const DeliveryMethodContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`
+
+const DeliveryMethodOption = styled.label<{ selected: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.lg};
+  border: 2px solid ${({ theme, selected }) => selected ? theme.colors.primary : theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: ${({ theme, selected }) => selected ? theme.colors.primary + '05' : 'white'};
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    transform: translateY(-2px);
+  }
+
+  input {
+    display: none;
+  }
+`
+
+const MethodName = styled.span`
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: ${({ theme }) => theme.colors.primaryDark};
+`
+
+const MethodDescription = styled.span`
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.colors.darkGray};
+`
+
+const AreaSelect = styled.select`
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing.md};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  font-size: 1rem;
+  font-family: inherit;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary + '20'};
+  }
+
+  &:disabled {
+    background: ${({ theme }) => theme.colors.background};
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`
+
+const FeeCalculationStatus = styled.div<{ status: 'loading' | 'success' | 'error' | 'idle' }>`
+  padding: ${({ theme }) => theme.spacing.md};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+
+  ${({ status, theme }) => {
+    switch (status) {
+      case 'loading':
+        return `
+          background: ${theme.colors.primary}20;
+          color: ${theme.colors.primary};
+        `
+      case 'success':
+        return `
+          background: #e8f5e920;
+          color: #388e3c;
+        `
+      case 'error':
+        return `
+          background: ${theme.colors.error}20;
+          color: ${theme.colors.error};
+        `
+      default:
+        return ''
+    }
+  }}
+`
+
 const Checkout: React.FC = () => {
   const navigate = useNavigate()
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore()
@@ -359,22 +459,103 @@ const Checkout: React.FC = () => {
     email: '',
     phone: '',
     address: '',
-    city: '',
-    state: '',
+    city: 'Lagos',
+    state: 'Lagos',
     postalCode: '',
     country: 'Nigeria',
-    paymentMethod: 'paystack'
+    paymentMethod: 'paystack',
+    deliveryMethod: 'delivery',
+    deliveryArea: ''
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pointsReservation, setPointsReservation] = useState<any>(null)
+  const [zones, setZones] = useState<Record<string, string[]>>({})
+  const [availableAreas, setAvailableAreas] = useState<string[]>([])
+  const [shippingFee, setShippingFee] = useState(0)
+  const [loadingFee, setLoadingFee] = useState(false)
+  const [feeStatus, setFeeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [stockErrors, setStockErrors] = useState<string[]>([])
+  const [generalError, setGeneralError] = useState('')
 
   const totalPrice = getTotalPrice()
   const totalItems = getTotalItems()
-const shippingFee = 0
-    const discountAmount = pointsReservation?.discount_amount || 0
-    const finalTotal = totalPrice + shippingFee - discountAmount
+  const discountAmount = pointsReservation?.discount_amount || 0
+  const finalTotal = totalPrice + shippingFee - discountAmount
+
+  // Load zones on mount
+  useEffect(() => {
+    loadZones()
+  }, [])
+
+  const loadZones = async () => {
+    try {
+      const response = await shippingAPI.getZones()
+      if (response.success && response.zones) {
+        setZones(response.zones)
+        // Flatten all areas from all zones for display
+        const allAreas = Object.values(response.zones).flat()
+        setAvailableAreas(allAreas.sort())
+      }
+    } catch (error) {
+      console.error('Error loading zones:', error)
+      toast.error('Failed to load delivery zones')
+    }
+  }
+
+  // Calculate fee when area or delivery method changes
+  useEffect(() => {
+    if (formData.deliveryMethod === 'delivery') {
+      if (!formData.deliveryArea) {
+        setShippingFee(0)
+        setFeeStatus('idle')
+        return
+      }
+
+      calculateDeliveryFee()
+      return
+    }
+
+    // If deliveryMethod is not 'delivery' (shouldn't happen since pickup removed), reset
+    setShippingFee(0)
+    setFeeStatus('idle')
+  }, [formData.deliveryArea, formData.deliveryMethod])
+
+  const calculateDeliveryFee = async () => {
+    try {
+      setFeeStatus('loading')
+      setLoadingFee(true)
+
+      const response = await shippingAPI.calculateFee(
+        formData.deliveryArea,
+        formData.deliveryMethod as 'delivery'
+      )
+
+      if (response.success) {
+        setShippingFee(response.deliveryFee || 0)
+        setFeeStatus('success')
+
+        // Clear error if it exists
+        if (errors.deliveryArea) {
+          setErrors(prev => ({ ...prev, deliveryArea: '' }))
+        }
+      } else {
+        setFeeStatus('error')
+        setErrors(prev => ({
+          ...prev,
+          deliveryArea: response.message || 'Area not supported for delivery'
+        }))
+      }
+    } catch (error: any) {
+      console.error('Error calculating delivery fee:', error)
+      setFeeStatus('error')
+      const errorMsg = error.response?.data?.message || 'Failed to calculate delivery fee'
+      setErrors(prev => ({ ...prev, deliveryArea: errorMsg }))
+    } finally {
+      setLoadingFee(false)
+    }
+  }
 
   // Handle payment verification after returning from Paystack
   useEffect(() => {
@@ -382,35 +563,21 @@ const shippingFee = 0
       const reference = new URLSearchParams(window.location.search).get('reference')
       const orderId = localStorage.getItem('pendingOrderId')
 
-      if (reference && orderId) {
+      if (reference) {
         try {
           toast.loading('Verifying payment...')
-          
-          // Verify payment with backend
-          const verifyResponse = await productAPI.post(`/api/orders/${orderId}/verify-payment`, {
-            reference
-          })
-
-          const { orderId: verifiedOrderId, status, pointsEarned } = verifyResponse.data
+          // Verify payment with backend (payments.verify will locate order by metadata)
+          const verifyResponse = await api.post('/payments/verify', { reference })
+          const payload = verifyResponse.data?.data || verifyResponse.data
 
           toast.dismiss()
-          
-          if (status === 'confirmed') {
-            toast.success(`✅ Payment verified! Order #${verifiedOrderId} confirmed`)
-            
-            if (pointsEarned) {
-              toast.success(`🎉 You earned ${pointsEarned} points!`)
-            }
-            
-            // Clear cart and localStorage
-            clearCart()
-            localStorage.removeItem('pendingOrderId')
-            
-            // Redirect to confirmation page
-            navigate(`/order-confirmation/${verifiedOrderId}`)
-          } else {
-            throw new Error(`Order status: ${status}`)
-          }
+
+          // Clear cart and localStorage
+          clearCart()
+          localStorage.removeItem('pendingOrderId')
+
+          // Redirect to the success page which will display order details
+          navigate(`/order/success/${reference}`)
         } catch (error: any) {
           toast.dismiss()
           console.error('Payment verification error:', error)
@@ -418,9 +585,18 @@ const shippingFee = 0
           const errorMessage = error.response?.data?.error || 
                               error.message || 
                               'Payment verification failed. Please contact support.'
-          
+
+          // If backend returned orderId for failed payment, navigate to failed page
+          const failedOrderId = error.response?.data?.data?.orderId || error.response?.data?.orderId
+          if (failedOrderId) {
+            toast.error('❌ Payment failed. Your order was saved. You can retry payment.')
+            // Navigate to failed order page
+            navigate(`/order/failed/${failedOrderId}`)
+            return
+          }
+
           toast.error(errorMessage)
-          
+
           // Don't redirect - let user stay on checkout
           window.history.replaceState({}, '', '/checkout')
         }
@@ -450,6 +626,13 @@ const shippingFee = 0
     if (!formData.city.trim()) newErrors.city = 'City is required'
     if (!formData.state.trim()) newErrors.state = 'State is required'
     if (!formData.paymentMethod) newErrors.paymentMethod = 'Payment method is required'
+    if (!formData.deliveryMethod) newErrors.deliveryMethod = 'Delivery method is required'
+    if (formData.deliveryMethod === 'delivery' && !formData.deliveryArea) {
+      newErrors.deliveryArea = 'Delivery area is required'
+    }
+    if (errors.deliveryArea && formData.deliveryArea) {
+      newErrors.deliveryArea = errors.deliveryArea
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -469,6 +652,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     setIsSubmitting(true)
+    setStockErrors([])
+    setGeneralError('')
 
     try {
       // Create order on backend
@@ -491,7 +676,10 @@ const handleSubmit = async (e: React.FormEvent) => {
           color: item.color,
           price: item.price
         })),
-        paymentMethod: formData.paymentMethod
+        paymentMethod: formData.paymentMethod,
+        deliveryMethod: formData.deliveryMethod,
+        deliveryArea: formData.deliveryArea || null,
+        deliveryFee: shippingFee
       }
 
       // Include points reservation if present
@@ -536,11 +724,25 @@ const handleSubmit = async (e: React.FormEvent) => {
     } catch (error: any) {
       console.error('Checkout error:', error)
 
-      const errorMessage = error.response?.data?.error ||
-                          error.message ||
-                          'There was an error processing your order. Please try again.'
+      // Handle stock validation errors
+      const backendDetails = error.response?.data?.details
 
-      toast.error(errorMessage)
+      if (backendDetails?.error === 'Stock validation failed') {
+        const results = backendDetails.results || []
+
+        const formattedErrors = results
+          .filter((r: any) => !r.success)
+          .map((r: any) =>
+            `Only ${r.availableQuantity} item(s) left for this variation.`
+          )
+
+        setStockErrors(formattedErrors)
+      } else {
+        const errorMessage = error.response?.data?.error ||
+                            error.message ||
+                            'There was an error processing your order. Please try again.'
+        setGeneralError(errorMessage)
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -674,13 +876,65 @@ const handleSubmit = async (e: React.FormEvent) => {
               onChange={(e) => handleInputChange('country', e.target.value)}
             >
               <option value="Nigeria">Nigeria</option>
-              <option value="Ghana">Ghana</option>
-              <option value="Kenya">Kenya</option>
-              <option value="South Africa">South Africa</option>
             </Select>
           </FormGroup>
         </FormSection>
 
+        <FormSection>
+          <SectionTitle>Delivery Method</SectionTitle>
+
+          <FormGroup>
+            <Label>Select Delivery Method *</Label>
+            <DeliveryMethodContainer>
+              <DeliveryMethodOption
+                selected={formData.deliveryMethod === 'delivery'}
+              >
+                <HiddenRadio
+                  type="radio"
+                  name="deliveryMethod"
+                  value="delivery"
+                  checked={formData.deliveryMethod === 'delivery'}
+                  onChange={(e) => handleInputChange('deliveryMethod', e.target.value)}
+                />
+                <MethodName>Home Delivery</MethodName>
+                <MethodDescription>Fast delivery to your address</MethodDescription>
+              </DeliveryMethodOption>
+
+            </DeliveryMethodContainer>
+            {errors.deliveryMethod && <ErrorMessage>{errors.deliveryMethod}</ErrorMessage>}
+          </FormGroup>
+
+          {formData.deliveryMethod === 'delivery' && (
+            <FormGroup>
+              <Label>Delivery Area *</Label>
+              <AreaSelect
+                value={formData.deliveryArea}
+                onChange={(e) => handleInputChange('deliveryArea', e.target.value)}
+                disabled={Object.keys(zones).length === 0}
+                $hasError={!!errors.deliveryArea}
+              >
+                <option value="">-- Select your area --</option>
+                {availableAreas.map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
+              </AreaSelect>
+              {errors.deliveryArea && <ErrorMessage>{errors.deliveryArea}</ErrorMessage>}
+              {loadingFee && (
+                <FeeCalculationStatus status="loading">
+                  <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Calculating delivery fee...</span>
+                </FeeCalculationStatus>
+              )}
+              {feeStatus === 'success' && formData.deliveryArea && !loadingFee && (
+                <FeeCalculationStatus status="success">
+                  ✓ Delivery fee: ₦{shippingFee.toLocaleString()}
+                </FeeCalculationStatus>
+              )}
+            </FormGroup>
+          )}
+        </FormSection>
         <FormSection>
           <SectionTitle>Payment Method</SectionTitle>
           
@@ -770,6 +1024,36 @@ const handleSubmit = async (e: React.FormEvent) => {
           <span>Total:</span>
           <span>₦{finalTotal.toLocaleString()}</span>
         </SummaryRow>
+
+        {/* Stock Errors Display */}
+        {stockErrors.length > 0 && (
+          <div style={{ 
+            backgroundColor: '#fee2e2', 
+            color: '#dc2626', 
+            padding: '12px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            border: '1px solid #fecaca'
+          }}>
+            {stockErrors.map((err, index) => (
+              <p key={index} style={{ margin: 0, fontSize: '0.95rem' }}>{err}</p>
+            ))}
+          </div>
+        )}
+
+        {/* General Error Display */}
+        {generalError && (
+          <div style={{ 
+            backgroundColor: '#fee2e2', 
+            color: '#dc2626', 
+            padding: '12px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            border: '1px solid #fecaca'
+          }}>
+            <p style={{ margin: 0, fontSize: '0.95rem' }}>{generalError}</p>
+          </div>
+        )}
 
         <ActionButtons>
           <SecondaryButton type="button" onClick={() => navigate('/cart')}>

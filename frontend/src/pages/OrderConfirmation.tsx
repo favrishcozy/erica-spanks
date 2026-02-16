@@ -375,7 +375,7 @@ const OrderConfirmation: React.FC = () => {
         {order && (
           <>
             <OrderNumber>
-              Order #{order._id.toString().slice(-6).toUpperCase()}
+              Order #{order.orderId || order._id.toString().slice(-6).toUpperCase()}
             </OrderNumber>
 
             <Timeline>

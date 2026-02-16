@@ -7,6 +7,7 @@ import { Order } from '../types/Order'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import ShippingFeeManager from '../components/admin/ShippingFeeManager'
 
 const Container = styled.div`
   max-width: 1400px;
@@ -336,6 +337,43 @@ const StatContent = styled.div`
 `
 
 const MainContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    gap: 0;
+    margin-top: 16px;
+  }
+`
+
+const TabNavigation = styled.div`
+  display: flex;
+  gap: 16px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 12px;
+  background: white;
+  margin-bottom: 24px;
+`
+
+const TabButton = styled.button<{ $active: boolean }>`
+  padding: 12px 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${props => props.$active ? '#C9A876' : '#888'};
+  border-bottom: ${props => props.$active ? '3px solid #C9A876' : 'none'};
+  margin-bottom: ${props => props.$active ? '-15px' : '-12px'};
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: #C9A876;
+  }
+`
+
+const TabContent = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
@@ -343,7 +381,6 @@ const MainContent = styled.div`
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 0;
-    margin-top: 16px;
   }
 `
 
@@ -504,6 +541,7 @@ const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [orderIndex, setOrderIndex] = useState(0)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'shipping'>('dashboard')
   const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -693,6 +731,25 @@ const AdminDashboard: React.FC = () => {
       </DesktopStatsWrapper>
 
       <MainContent>
+        {/* Tab Navigation */}
+        <TabNavigation>
+          <TabButton 
+            $active={activeTab === 'dashboard'}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            Dashboard
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'shipping'}
+            onClick={() => setActiveTab('shipping')}
+          >
+            Delivery Fees
+          </TabButton>
+        </TabNavigation>
+
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <TabContent>
         <Section>
           <SectionTitle>
             <Package />
@@ -757,6 +814,15 @@ const AdminDashboard: React.FC = () => {
             </ActionButton>
           </QuickActions>
         </Section>
+          </TabContent>
+        )}
+
+        {/* Shipping Fees Tab */}
+        {activeTab === 'shipping' && (
+          <Section style={{ padding: 0, background: 'transparent', boxShadow: 'none' }}>
+            <ShippingFeeManager />
+          </Section>
+        )}
       </MainContent>
     </Container>
   )

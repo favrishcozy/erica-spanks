@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
-import { Mail, Phone, MapPin, Instagram, MessageCircle, Send, Music } from 'lucide-react'
+import { Mail, Phone, MapPin, Instagram, MessageCircle, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const ContactContainer = styled.div`
@@ -308,8 +308,8 @@ const Contact: React.FC = () => {
     }
   }
 
-  const whatsappNumber = "+2349027134581" // Replace with actual WhatsApp number
-  const whatsappMessage = "Hi! I'm interested in Erica Spanks products."
+  const whatsappNumber = "+234 811 332 2121"
+  const whatsappMessage = "Hi! I'm interested in your products."
 
   return (
     <ContactContainer>
@@ -410,7 +410,11 @@ const Contact: React.FC = () => {
                 </InfoIcon>
                 <InfoContent>
                   <InfoTitle>Phone</InfoTitle>
-                  <InfoText>Available Monday - Friday, 9AM - 6PM WAT</InfoText>
+                  <InfoText>
+                    <InfoLink href="tel:+2348113322121">+234 811 332 2121</InfoLink>
+                    <br />
+                    <span style={{ fontSize: '0.85em', color: '#666' }}>Monday - Friday, 9AM - 6PM WAT</span>
+                  </InfoText>
                 </InfoContent>
               </InfoItem>
 
@@ -441,7 +445,7 @@ const Contact: React.FC = () => {
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  <Music size={20} />
+                  <img src="/Real TikTok Logo.png" alt="TikTok" style={{ width: 20, height: 20 }} />
                   TikTok
                 </SocialLink>
               </SocialGrid>

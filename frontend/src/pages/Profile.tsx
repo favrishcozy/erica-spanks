@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import { useAuth } from '../contexts/AuthContext'
 import { usePoints } from '../hooks/usePoints'
 import api, { orderAPI } from '../services/api'
-import { User, TrendingUp, ShoppingBag, Zap, Settings, LogOut, ArrowRight } from 'lucide-react'
+import { User, TrendingUp, ShoppingBag, Zap, Settings, LogOut, ArrowRight, FileText } from 'lucide-react'
 
 const PageContainer = styled.div`
   padding: 2rem;
@@ -438,9 +438,13 @@ const Profile: React.FC = () => {
 
       {/* Action Buttons */}
       <ButtonGroup>
-        <Button $variant="primary" onClick={() => window.location.href = '/products'}>
+        <Button $variant="primary" onClick={() => window.location.href = '/orders'}>
           <ShoppingBag size={18} />
-          Continue Shopping
+          Order History
+        </Button>
+        <Button $variant="secondary" onClick={() => window.location.href = '/invoices'}>
+          <FileText size={18} />
+          Invoices
         </Button>
         <Button $variant="secondary" onClick={() => window.location.href = '/account-settings'}>
           <Settings size={18} />

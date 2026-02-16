@@ -231,6 +231,17 @@ export const productAPI = {
       throw error;
     }
   },
+
+  // Validate stock for cart items
+  validateStock: async (items: { productId: string; size?: string; color?: string; quantity: number }[]) => {
+    try {
+      const response = await api.post('/products/validate-stock', { items });
+      return response.data;
+    } catch (error) {
+      console.error('Error validating stock:', error);
+      throw error;
+    }
+  },
 };
 
 // Auth endpoints (updated with new integration)
@@ -471,6 +482,11 @@ export const orderAPI = {
     return response.data;
   },
 
+  retryPayment: async (orderId: string) => {
+    const response = await api.post(`/orders/${orderId}/retry-payment`);
+    return response.data;
+  },
+
   createOrder: async (orderData: any) => {
     // Use extended timeout for order creation (includes email + payment init)
     const response = await api.post('/orders', orderData, { timeout: 45000 });
@@ -498,6 +514,103 @@ export const contactAPI = {
   unsubscribeNewsletter: async (email: string) => {
     const response = await api.post('/newsletter/unsubscribe', { email });
     return response.data;
+  },
+};
+
+// Shipping/Delivery endpoints
+export const shippingAPI = {
+  getZones: async () => {
+    try {
+      const response = await api.get('/shipping/zones');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching delivery zones:', error);
+      throw error;
+    }
+  },
+
+  calculateFee: async (
+    deliveryArea: string,
+    deliveryMethod: 'delivery' | 'pickup' = 'delivery'
+  ) => {
+    try {
+      const response = await api.post('/shipping/calculate', {
+        deliveryArea,
+        deliveryMethod,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error calculating delivery fee:', error);
+      throw error;
+    }
+  },
+};
+
+// Invoice endpoints
+export const invoiceAPI = {
+  getInvoices: async (page: number = 1, limit: number = 10) => {
+    try {
+      const response = await api.get(`/invoices?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      throw error;
+    }
+  },
+
+  getInvoice: async (invoiceId: string) => {
+    try {
+      const response = await api.get(`/invoices/${invoiceId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching invoice:', error);
+      throw error;
+    }
+  },
+
+  getOrderInvoice: async (orderId: string) => {
+    try {
+      const response = await api.get(`/invoices/order/${orderId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching order invoice:', error);
+      throw error;
+    }
+  },
+
+  downloadPDF: async (invoiceId: string) => {
+    try {
+      const response = await api.get(`/invoices/${invoiceId}/pdf`, {
+        responseType: 'blob',
+      });
+      
+      // Create blob and download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${invoiceId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error downloading invoice PDF:', error);
+      throw error;
+    }
+  },
+
+  createFromOrder: async (orderId: string, options?: any) => {
+    try {
+      const response = await api.post(`/invoices/create-from-order/${orderId}`, {
+        options: options || {},
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      throw error;
+    }
   },
 };
 

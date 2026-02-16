@@ -24,9 +24,14 @@ import orderRoutes from './routes/orders.js'
 import contactRoutes from './routes/contact.js'
 import newsletterRoutes from './routes/newsletter.js'
 import adminRoutes from './routes/admin.js'
+import stockRoutes from './routes/admin/stock.js'
 import uploadRoutes from './routes/upload.js'
 import webhooksRoutes from './routes/webhooks.js'
 import occasionsRoutes from './routes/occasions.js'
+import shippingRoutes from './routes/shipping.js'
+import invoicesRoutes from './routes/invoices.js'
+import pointsRoutes from './routes/points.js'
+import paymentsRoutes from './routes/payments.js'
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js'
@@ -86,27 +91,33 @@ const limiter = process.env.NODE_ENV === 'production' ? rateLimit({
 app.use(helmet({
   // Use a safer default for cross origin resource policy
   crossOriginResourcePolicy: { policy: process.env.NODE_ENV === 'production' ? 'same-site' : 'cross-origin' },
-  contentSecurityPolicy: false
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://js.paystack.co"],
+      scriptSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://js.paystack.co"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.paystack.co", "https://erica-spanks.vercel.app"],
+      frameSrc: ["'self'", "https://checkout.paystack.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"]
+    }
+  }
 }))
 app.use(cors(corsOptions))
 app.use(compression())
 app.use(cookieParser())
-  // Capture raw body for webhook signature verification
-  app.use((req, res, next) => {
-    if (req.path === '/api/webhooks/paystack') {
-      let rawBody = ''
-      req.on('data', chunk => {
-        rawBody += chunk.toString()
-      })
-      req.on('end', () => {
-        req.rawBody = rawBody
-        next()
-      })
-    } else {
-      next()
+
+// Custom JSON parser with raw body capture for webhooks
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf, encoding) => {
+    // Capture raw body for webhook signature verification
+    if (req.path === '/api/webhooks/paystack' || req.path === '/api/payments/webhook') {
+      req.rawBody = buf.toString(encoding || 'utf8')
     }
-  })
-app.use(express.json({ limit: '10mb' }))
+  }
+}))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(morgan('combined'))
 app.use('/api/', limiter)
@@ -131,9 +142,14 @@ app.use('/api/orders', orderRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/newsletter', newsletterRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/admin/stock', stockRoutes)
 app.use('/api/upload', uploadRoutes)
 app.use('/api/webhooks', webhooksRoutes)
 app.use('/api/occasions', occasionsRoutes)
+app.use('/api/shipping', shippingRoutes)
+app.use('/api/invoices', invoicesRoutes)
+app.use('/api/points', pointsRoutes)
+app.use('/api/payments', paymentsRoutes)
 
 // Error handling middleware
 app.use(notFound)

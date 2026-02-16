@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { Heart, ShoppingBag, Trash2, Share } from 'lucide-react'
 import { useCartStore } from '../stores/cartStore'
 import { useWishlistStore } from '../stores/wishlistStore'
+import { useAuth } from '../contexts/AuthContext'
 import { productAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { formatPrice } from '../utils/currency'
@@ -255,6 +256,8 @@ const mockWishlistItems = [
 const Wishlist: React.FC = () => {
   const { addItem } = useCartStore()
   const { items: wishlistIds, removeFromWishlist } = useWishlistStore()
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [selectedSizes, setSelectedSizes] = useState<{[key: string]: string}>({})
   const [selectedColors, setSelectedColors] = useState<{[key: string]: string}>({})
 
@@ -403,6 +406,30 @@ const Wishlist: React.FC = () => {
       color: selectedColor,
       quantity: 1,
     })
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return (
+      <WishlistContainer>
+        <WishlistHeader>
+          <Title>My Wishlist</Title>
+          <Subtitle>Save items you love</Subtitle>
+        </WishlistHeader>
+        <EmptyWishlist>
+          <EmptyIcon>
+            <Heart size={60} />
+          </EmptyIcon>
+          <EmptyTitle>Sign in to view your wishlist</EmptyTitle>
+          <EmptyText>
+            Create an account or sign in to save and manage your favorite items across devices.
+          </EmptyText>
+          <ShopButton as="button" onClick={() => navigate('/login')} style={{ justifyContent: 'center' }}>
+            Sign In to Your Wishlist
+          </ShopButton>
+        </EmptyWishlist>
+      </WishlistContainer>
+    )
   }
 
   if (!loading && wishlistItems.length === 0) {
