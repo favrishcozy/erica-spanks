@@ -108,6 +108,9 @@ export const areaToZone = {
   "Ilaje": "ISLAND_C",
   "Orchid Road": "ISLAND_C",
   "Langbasa": "ISLAND_C",
+
+  // TEST LOCATION (Temporary for testing)
+  "Test Location": "TEST_LOCATION",
 };
 
 // Pickup Locations (Only available at these locations)
