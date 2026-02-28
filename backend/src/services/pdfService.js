@@ -10,6 +10,9 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// Path to logo file in frontend public folder
+const LOGO_PATH = path.join(__dirname, '../../../frontend/public/EricaLogoBlack.png')
+
 /**
  * Format currency (NGN)
  * @param {number} amount
@@ -204,26 +207,47 @@ export const generateInvoicePDF = async (invoice, outputPath) => {
       doc.fillColor('#000')
 
       // Logo
-      if (inv.business.logo && fs.existsSync(inv.business.logo)) {
+      const logoExists = fs.existsSync(LOGO_PATH)
+      console.log(`[PDF] Logo path: ${LOGO_PATH}`)
+      console.log(`[PDF] Logo exists: ${logoExists}`)
+      
+      const logoWidth = 100
+      
+      if (logoExists) {
         try {
-          doc.image(inv.business.logo, margins.left, margins.top, { width: 45 })
-        } catch {}
+          console.log(`[PDF] Attempting to load logo...`)
+          doc.image(LOGO_PATH, margins.left, margins.top, { width: logoWidth })
+          console.log(`[PDF] Logo loaded successfully`)
+        } catch (e) {
+          console.error(`[PDF] Failed to load logo:`, e.message)
+          // Fallback to text
+          doc.font('Helvetica-Bold')
+            .fontSize(20)
+            .text(inv.business.name, margins.left, margins.top)
+        }
+      } else {
+        console.warn(`[PDF] Logo file not found at: ${LOGO_PATH}`)
+        // Fallback to text
+        doc.font('Helvetica-Bold')
+          .fontSize(20)
+          .text(inv.business.name, margins.left, margins.top)
       }
 
-      const brandX = margins.left + (inv.business.logo ? 60 : 0)
-
-      // Brand Name
-      doc.font('Helvetica-Bold')
-        .fontSize(20)
-        .text(inv.business.name, brandX, margins.top)
-
-      // Business Info
+      // Business Info (below logo)
       doc.font('Helvetica')
         .fontSize(9)
         .fillColor('#555')
-        .text(inv.business.address, brandX, doc.y)
-        .text('Tel: +234 811 332 2121', brandX, doc.y)
-        .text(inv.business.email, brandX, doc.y)
+      
+      doc.moveDown(2)
+      
+      if (logoExists) {
+        doc.text('Tel: +234 811 332 2121', margins.left)
+        doc.text('Email: info@ericaspanks.com', margins.left)
+      } else {
+        doc.text(inv.business.address, margins.left)
+        doc.text('Tel: +234 811 332 2121', margins.left)
+        doc.text(inv.business.email, margins.left)
+      }
 
       // INVOICE title on right
       doc.font('Helvetica-Bold')
@@ -364,6 +388,11 @@ export const generateInvoicePDF = async (invoice, outputPath) => {
         .stroke()
 
       doc.moveDown(0.7)
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#666')
+      doc.text('(VAT included)', totalsX, doc.y)
+
+      doc.moveDown(0.5)
 
       doc.font('Helvetica-Bold').fontSize(11).fillColor('#000')
       doc.text('TOTAL', totalsX, doc.y, { width: 100 })

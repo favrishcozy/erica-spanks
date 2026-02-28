@@ -98,7 +98,7 @@ export const createInvoiceFromOrder = async (order, options = {}) => {
         logo: options.businessLogo || null,
         address: options.businessAddress || '',
         phone: options.businessPhone || '',
-        email: options.businessEmail || 'orders@ericaspanks.com',
+        email: options.businessEmail || 'info@ericaspanks.com',
         website: options.businessWebsite || 'https://ericaspanks.com',
         taxId: options.businessTaxId || null
       },

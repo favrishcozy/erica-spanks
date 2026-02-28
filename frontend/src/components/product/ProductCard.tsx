@@ -6,7 +6,7 @@ import { useCartStore } from '../../stores/cartStore'
 import { useWishlistStore } from '../../stores/wishlistStore'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import { getCategoryName, getMainImage, calculateDiscount, formatPrice, validateProduct, Product } from '../../utils/productHelpers'
+import { getCategoryName, getMainImage, getBestAvailableImage, calculateDiscount, formatPrice, validateProduct, Product } from '../../utils/productHelpers'
 import QuickViewModal from './QuickViewModal'
 
 interface ProductCardProps {
@@ -348,7 +348,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
 
   // Use helper functions
   const categoryName = getCategoryName(validatedProduct.category);
-  const mainImage = getMainImage(validatedProduct);
+  const mainImage = getBestAvailableImage(validatedProduct);
   const discountPercentage = calculateDiscount(validatedProduct.price, validatedProduct.originalPrice);
 
   const { 

@@ -296,12 +296,13 @@ const StatCard = styled.div`
 const IconWrapper = styled.div`
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #C9A876 0%, #1a1a1a 100%);
+  background: #1a1a1a;
+  border: 2px solid #C9A876;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #C9A876;
   flex-shrink: 0;
 
   svg {

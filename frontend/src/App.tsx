@@ -30,6 +30,12 @@ import OrderSuccess from './pages/OrderSuccess'
 import OrderHistory from './pages/OrderHistory'
 import OrderFailed from './pages/OrderFailed'
 import InvoiceHistory from './pages/InvoiceHistory'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
+import Careers from './pages/Careers'
+import FAQ from './pages/FAQ'
+import Returns from './pages/Returns'
+import Shipping from './pages/Shipping'
 import '@fontsource/montserrat/400.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/playfair-display/700.css';
@@ -54,6 +60,7 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
               <Route path="/order/verify" element={<OrderVerify />} />
+              <Route path="/orders/verify" element={<OrderVerify />} />
               <Route path="/order/success/:reference" element={<OrderSuccess />} />
                 <Route path="/order/failed/:orderId" element={<OrderFailed />} />
               <Route path="/login" element={<Login />} />
@@ -67,6 +74,15 @@ function App() {
               <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
               <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
               <Route path="/learn-points" element={<PointsInfo />} />
+              <Route path="/size-guide" element={<SizeGuide />} />
+              
+              {/* Info & Policy Pages */}
+              <Route path="/shipping" element={<Shipping />} />
+              <Route path="/returns" element={<Returns />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/careers" element={<Careers />} />
               
               {/* Admin Routes */}
               <Route path="/admin/dashboard" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />

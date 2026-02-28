@@ -450,31 +450,29 @@ const Cart: React.FC = () => {
       return () => { mounted = false }
     }, [item.id])
 
-    const applySelection = () => {
-      if (!product) return
-      if (!selectedColor || !selectedSize) {
-        toast.error('Please select size and color')
-        return
-      }
-      const v = (product.variations || []).find((x: any) => x.color === selectedColor && x.size === selectedSize)
-      if (!v) {
-        toast.error('Selected combination is not available')
-        return
-      }
+    // Auto-save when both color and size are selected
+    useEffect(() => {
+      if (!product || !selectedColor || !selectedSize) return
 
-      removeItem(item.id, item.size, item.color)
-      addItem({
-        id: item.id,
-        name: item.name,
-        price: v.price || item.price,
-        image: v.images?.[0]?.url || item.image,
-        size: selectedSize,
-        color: selectedColor,
-        quantity: item.quantity,
-        variationId: v._id || `${selectedColor}-${selectedSize}`
-      })
-      toast.success('Item updated in cart')
-    }
+      const v = (product.variations || []).find((x: any) => x.color === selectedColor && x.size === selectedSize)
+      if (!v) return
+
+      // Only update if the variation changed from the original
+      if (selectedColor !== item.color || selectedSize !== item.size) {
+        removeItem(item.id, item.size, item.color)
+        addItem({
+          id: item.id,
+          name: item.name,
+          price: v.price || item.price,
+          image: v.images?.[0]?.url || item.image,
+          size: selectedSize,
+          color: selectedColor,
+          quantity: item.quantity,
+          variationId: v._id || `${selectedColor}-${selectedSize}`
+        })
+        toast.success('Item updated in cart')
+      }
+    }, [selectedColor, selectedSize])
 
     if (loading) return <CartItem><div>Loading...</div></CartItem>
 
@@ -505,9 +503,6 @@ const Cart: React.FC = () => {
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <button onClick={applySelection} style={{ marginTop: 20 }}>Save Options</button>
               </div>
             </div>
           </ItemDetails>

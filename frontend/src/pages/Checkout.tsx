@@ -1,15 +1,19 @@
 // pages/checkout.tsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
-import { orderAPI, shippingAPI } from '../services/api'
+import { orderAPI, shippingAPI, authAPI } from '../services/api'
 import { productAPI } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import PointsRedemptionWidget from '../components/PointsRedemptionWidget'
 import paystackLogo from '../images/paystack_logo.jpeg'
 import { Loader } from 'lucide-react'
+import { authService } from '../services/authService'
+
+// Storage key for shipping info persistence
+const SHIPPING_STORAGE_KEY = 'checkout_shipping_info'
 
 // Animations
 const fadeIn = keyframes`
@@ -449,6 +453,92 @@ const FeeCalculationStatus = styled.div<{ status: 'loading' | 'success' | 'error
   }}
 `
 
+// Saved Address Button Styles
+const SavedAddressBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: ${({ theme }) => theme.colors.primary}08;
+  border: 1px solid ${({ theme }) => theme.colors.primary}30;
+  border-radius: 8px;
+  margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`
+
+const SavedAddressText = styled.span`
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.colors.text};
+  
+  strong {
+    color: ${({ theme }) => theme.colors.primaryDark};
+  }
+`
+
+const FillAddressButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background: ${({ theme }) => theme.colors.lightGray};
+    cursor: not-allowed;
+    transform: none;
+  }
+`
+
+const AddressSelect = styled.select`
+  padding: 8px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.primary}40;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: white;
+  cursor: pointer;
+  min-width: 180px;
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`
+
+const ClearButton = styled.button`
+  padding: 6px 12px;
+  background: transparent;
+  color: ${({ theme }) => theme.colors.textLight};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.background};
+    color: ${({ theme }) => theme.colors.primary};
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`
+
 const Checkout: React.FC = () => {
   const navigate = useNavigate()
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore()
@@ -478,11 +568,183 @@ const Checkout: React.FC = () => {
   const [feeStatus, setFeeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [stockErrors, setStockErrors] = useState<string[]>([])
   const [generalError, setGeneralError] = useState('')
+  
+  // Saved addresses state
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('')
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
+  const [hasLocalSavedInfo, setHasLocalSavedInfo] = useState(false)
+
+  // Track if we've initialized from localStorage to prevent overwriting with empty data
+  const isInitializedRef = useRef(false)
+
+  // Check for saved info on mount
+  useEffect(() => {
+    const checkSavedInfo = async () => {
+      // Check localStorage and LOAD the data into form
+      const savedShipping = localStorage.getItem(SHIPPING_STORAGE_KEY)
+      if (savedShipping) {
+        try {
+          const parsed = JSON.parse(savedShipping)
+          if (parsed.firstName || parsed.address || parsed.phone) {
+            // Load the saved data into form state
+            setFormData(prev => ({
+              ...prev,
+              ...parsed
+            }))
+            setHasLocalSavedInfo(true)
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      // Load saved addresses from backend if logged in
+      if (authService.isAuthenticated()) {
+        setIsLoadingAddresses(true)
+        try {
+          const profile = await authAPI.getProfile()
+          if (profile?.data?.addresses && profile.data.addresses.length > 0) {
+            setSavedAddresses(profile.data.addresses)
+            // Set default address as selected
+            const defaultAddr = profile.data.addresses.find((a: any) => a.isDefault)
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr._id || defaultAddr.id)
+            }
+          }
+        } catch (error) {
+          console.log('Could not load saved addresses')
+        } finally {
+          setIsLoadingAddresses(false)
+        }
+      }
+
+      // Mark as initialized - allow localStorage saving from now on
+      isInitializedRef.current = true
+    }
+
+    checkSavedInfo()
+  }, [])
+
+  // Function to fill form from selected address
+  const fillFromSavedAddress = () => {
+    // Get the address to fill from - either selected or first one
+    let addressToFill = null
+    
+    if (selectedAddressId) {
+      addressToFill = savedAddresses.find(
+        (a: any) => (a._id || a.id) === selectedAddressId
+      )
+    }
+    
+    // If no selected address or address not found, use first one
+    if (!addressToFill && savedAddresses.length > 0) {
+      addressToFill = savedAddresses[0]
+      setSelectedAddressId(addressToFill._id || addressToFill.id)
+    }
+
+    if (addressToFill) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: addressToFill.firstName || prev.firstName,
+        lastName: addressToFill.lastName || prev.lastName,
+        email: addressToFill.email || prev.email,
+        phone: addressToFill.phone || prev.phone,
+        address: addressToFill.address1 || addressToFill.address || prev.address,
+        city: addressToFill.city || prev.city,
+        state: addressToFill.state || prev.state,
+        postalCode: addressToFill.zipCode || addressToFill.postalCode || prev.postalCode,
+        country: addressToFill.country || prev.country
+      }))
+      // Clear any existing validation errors after filling
+      setErrors({})
+      toast.success('✓ Address filled from saved addresses')
+    } else {
+      toast.error('No saved address available')
+    }
+  }
+
+  // Function to fill form from localStorage
+  const fillFromLocalStorage = () => {
+    const savedShipping = localStorage.getItem(SHIPPING_STORAGE_KEY)
+    if (savedShipping) {
+      try {
+        const parsed = JSON.parse(savedShipping)
+        setFormData(prev => ({
+          ...prev,
+          ...parsed
+        }))
+        // Clear any existing validation errors after filling
+        setErrors({})
+        toast.success('Address filled from previous order')
+      } catch (err) {
+        toast.error('Could not load saved address')
+      }
+    }
+  }
+
+  // Function to clear form
+  const clearForm = () => {
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: 'Lagos',
+      state: 'Lagos',
+      postalCode: '',
+      country: 'Nigeria',
+      paymentMethod: 'paystack',
+      deliveryMethod: 'delivery',
+      deliveryArea: ''
+    })
+    localStorage.removeItem(SHIPPING_STORAGE_KEY)
+    setHasLocalSavedInfo(false)
+    toast.success('Form cleared')
+  }
 
   const totalPrice = getTotalPrice()
   const totalItems = getTotalItems()
   const discountAmount = pointsReservation?.discount_amount || 0
-  const finalTotal = totalPrice + shippingFee - discountAmount
+  const VAT_RATE = 0.075 // 7.5% VAT
+  const subtotalBeforeVAT = totalPrice + shippingFee - discountAmount
+  const vatAmount = Math.round(subtotalBeforeVAT * VAT_RATE * 100) / 100
+  const finalTotal = subtotalBeforeVAT + vatAmount
+
+  // Save shipping info to localStorage whenever it changes (but only after initialization)
+  useEffect(() => {
+    // Don't save on initial render to avoid overwriting with empty data
+    if (!isInitializedRef.current) {
+      return
+    }
+
+    const shippingDataToSave = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      postalCode: formData.postalCode,
+      country: formData.country,
+      deliveryArea: formData.deliveryArea
+    }
+
+    localStorage.setItem(SHIPPING_STORAGE_KEY, JSON.stringify(shippingDataToSave))
+  }, [
+    formData.firstName,
+    formData.lastName,
+    formData.email,
+    formData.phone,
+    formData.address,
+    formData.city,
+    formData.state,
+    formData.postalCode,
+    formData.country,
+    formData.deliveryArea
+  ])
 
   // Load zones on mount
   useEffect(() => {
@@ -709,10 +971,14 @@ const handleSubmit = async (e: React.FormEvent) => {
 
           toast.success('Redirecting to payment...')
 
+          // Clear cart BEFORE redirecting to Paystack
+          // NOTE: Preserve checkout_shipping_info for address filling if payment fails
+          clearCart()
+
           // Redirect to Paystack payment page
           window.location.href = paymentInitialization.authorizationUrl
         } else {
-          console.error('❌ Missing authorizationUrl in payment initialization:', paymentInitialization)
+          console.error('Missing authorizationUrl in payment initialization:', paymentInitialization)
           throw new Error('Failed to initialize Paystack payment - missing authorization URL')
         }
       } else {
@@ -776,6 +1042,59 @@ const handleSubmit = async (e: React.FormEvent) => {
       <form onSubmit={handleSubmit}>
         <FormSection>
           <SectionTitle>Shipping Information</SectionTitle>
+          
+          {/* Saved Address Quick Fill Bar */}
+          {(savedAddresses.length > 0 || hasLocalSavedInfo) && (
+            <SavedAddressBar>
+              {savedAddresses.length > 0 ? (
+                <>
+                  <SavedAddressText>
+                    <strong>📍 Saved Address Available</strong> — Quick fill your form
+                  </SavedAddressText>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {savedAddresses.length > 1 ? (
+                <>
+                  <AddressSelect
+                    value={selectedAddressId}
+                    onChange={(e) => setSelectedAddressId(e.target.value)}
+                  >
+                    {savedAddresses.map((addr: any, index: number) => (
+                      <option key={addr._id || addr.id || index} value={addr._id || addr.id}>
+                        {addr.label || `${addr.address1 || addr.address?.substring(0, 20)}...`}
+                      </option>
+                    ))}
+                  </AddressSelect>
+                </>
+              ) : (
+                <SavedAddressText>
+                  {savedAddresses[0]?.address1 || savedAddresses[0]?.address || 'Saved address'}
+                </SavedAddressText>
+              )}
+                    <FillAddressButton type="button" onClick={fillFromSavedAddress}>
+                      <span>✓</span> Use Saved Address
+                    </FillAddressButton>
+                    <ClearButton type="button" onClick={clearForm}>
+                      Clear
+                    </ClearButton>
+                  </div>
+                </>
+              ) : hasLocalSavedInfo ? (
+                <>
+                  <SavedAddressText>
+                    <strong> Previous Address Found</strong> — Fill from your last order
+                  </SavedAddressText>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FillAddressButton type="button" onClick={fillFromLocalStorage}>
+                      <span>↻</span> Fill from Previous
+                    </FillAddressButton>
+                    <ClearButton type="button" onClick={clearForm}>
+                      Clear
+                    </ClearButton>
+                  </div>
+                </>
+              ) : null}
+            </SavedAddressBar>
+          )}
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <FormGroup>
@@ -1019,6 +1338,11 @@ const handleSubmit = async (e: React.FormEvent) => {
             <span>-₦{discountAmount.toLocaleString()}</span>
           </SummaryRow>
         )}
+
+        <SummaryRow>
+          <span>VAT (7.5%):</span>
+          <span>₦{vatAmount.toLocaleString()}</span>
+        </SummaryRow>
 
         <SummaryRow $highlight>
           <span>Total:</span>

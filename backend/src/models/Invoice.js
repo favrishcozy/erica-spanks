@@ -85,7 +85,7 @@ const invoiceSchema = new mongoose.Schema({
     },
     email: {
       type: String,
-      default: 'orders@ericaspanks.com'
+      default: 'info@ericaspanks.com'
     },
     website: {
       type: String,

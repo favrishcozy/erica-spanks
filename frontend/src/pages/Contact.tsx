@@ -255,7 +255,7 @@ const WhatsAppButton = styled.a`
   text-decoration: none;
   box-shadow: ${({ theme }) => theme.shadows.lg};
   transition: ${({ theme }) => theme.transitions.fast};
-  z-index: ${({ theme }) => theme.zIndex.fixed};
+  z-index: ${({ theme }) => theme.zIndex.modal};
   
   &:hover {
     transform: scale(1.1);
@@ -263,10 +263,11 @@ const WhatsAppButton = styled.a`
   }
   
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    bottom: ${({ theme }) => theme.spacing.lg};
+    bottom: calc(70px + ${({ theme }) => theme.spacing.lg});
     right: ${({ theme }) => theme.spacing.lg};
     width: 50px;
     height: 50px;
+    z-index: ${({ theme }) => theme.zIndex.modal};
   }
 `
 
@@ -308,7 +309,7 @@ const Contact: React.FC = () => {
     }
   }
 
-  const whatsappNumber = "+234 811 332 2121"
+  const whatsappNumber = "2348113322121"
   const whatsappMessage = "Hi! I'm interested in your products."
 
   return (
@@ -413,7 +414,7 @@ const Contact: React.FC = () => {
                   <InfoText>
                     <InfoLink href="tel:+2348113322121">+234 811 332 2121</InfoLink>
                     <br />
-                    <span style={{ fontSize: '0.85em', color: '#666' }}>Monday - Friday, 9AM - 6PM WAT</span>
+                    <span style={{ fontSize: '0.85em', color: '#666' }}>Monday - Saturday</span>
                   </InfoText>
                 </InfoContent>
               </InfoItem>
@@ -455,7 +456,7 @@ const Contact: React.FC = () => {
       </MainContent>
 
       <WhatsAppButton
-        href={`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(whatsappMessage)}`}
+        href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
         target="_blank"
         rel="noopener noreferrer"
         title="Chat with us on WhatsApp"

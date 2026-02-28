@@ -178,7 +178,19 @@ router.post('/', customer, async (req, res) => {
       discount = pointsRedemption.pointsToRedeem * 0.5
     }
 
-    const total = subtotal + shippingCost - discount
+    const subtotalBeforeVAT = subtotal + shippingCost - discount
+    const VAT_RATE = 0.075 // 7.5% VAT
+    const vat = Math.round(subtotalBeforeVAT * VAT_RATE * 100) / 100
+    const total = subtotalBeforeVAT + vat
+
+    console.log('💰 Pricing Calculation:')
+    console.log('  Subtotal:', subtotal)
+    console.log('  Shipping Cost:', shippingCost)
+    console.log('  Discount:', discount)
+    console.log('  Subtotal Before VAT:', subtotalBeforeVAT)
+    console.log('  VAT Rate:', VAT_RATE)
+    console.log('  VAT Amount:', vat)
+    console.log('  Total:', total)
 
     // Create order in DB with pending status
     const order = await Order.create([{
@@ -187,6 +199,7 @@ router.post('/', customer, async (req, res) => {
       shippingAddress: {
         firstName: shipping.firstName,
         lastName: shipping.lastName,
+        email: shipping.email,
         address1: shipping.address,
         city: shipping.city,
         state: shipping.state,
@@ -207,7 +220,7 @@ router.post('/', customer, async (req, res) => {
       pricing: {
         subtotal,
         shippingCost,
-        tax: 0,
+        vat,
         discount,
         total
       },
@@ -322,7 +335,7 @@ router.post('/:orderId/verify-payment', async (req, res) => {
       })
     }
 
-    const order = await Order.findById(req.params.orderId).populate('user')
+    const order = await Order.findById(req.params.orderId).populate('user', 'firstName lastName email phone')
 
     if (!order) {
       return res.status(404).json({
@@ -375,27 +388,47 @@ router.post('/:orderId/verify-payment', async (req, res) => {
     await order.save()
 
     // Send payment confirmation email (non-blocking for performance)
-    const statusTemplate = emailTemplates.orderStatusUpdate(
-      {
-        orderId: order._id.toString().slice(-6).toUpperCase(),
-        shipping: order.shippingAddress,
-        items: order.items
-      },
-      'confirmed'
-    )
-    // Send email asynchronously without blocking the response
-    console.log(`📧 Sending payment confirmation email to: ${order.user.email}`)
-    sendEmail(order.user.email, statusTemplate)
-      .then((sent) => {
-        if (sent) {
-          console.log(`✅ Payment confirmation email sent to ${order.user.email}`)
-        } else {
-          console.error(`❌ Failed to send payment confirmation email to ${order.user.email}`)
-        }
-      })
-      .catch(error => {
-        console.error(`❌ Error in email sending process to ${order.user.email}:`, error)
-      })
+    // Use order.user.email if populated, otherwise fallback to shipping email from order
+    const userEmail = order.user?.email || order.shippingAddress?.email
+    
+    console.log(`DEBUG: userEmail = ${userEmail}`)
+    console.log(`DEBUG: order.user?.email = ${order.user?.email}`)
+    console.log(`DEBUG: order.shippingAddress?.email = ${order.shippingAddress?.email}`)
+    
+    if (userEmail) {
+      try {
+        const statusTemplate = emailTemplates.orderStatusUpdate(
+          {
+            orderId: order._id.toString().slice(-6).toUpperCase(),
+            shipping: order.shippingAddress,
+            items: order.items
+          },
+          'confirmed'
+        )
+        console.log(`[ORDER] Template created for ${userEmail}`)
+        console.log(`[ORDER] Template subject: ${statusTemplate.subject}`)
+        
+        // Send email asynchronously without blocking the response
+        console.log(`📧 Attempting to send order status update email to: ${userEmail}`)
+        sendEmail(userEmail, statusTemplate)
+          .then((sent) => {
+            if (sent) {
+              console.log(`✅ Order status update email sent to ${userEmail}`)
+            } else {
+              console.error(`❌ Failed to send order status update email to ${userEmail}`)
+            }
+          })
+          .catch(error => {
+            console.error(`❌ Error in order status update email sending to ${userEmail}:`, error.message || error)
+          })
+      } catch (templateError) {
+        console.error(`❌ Error creating email template:`, templateError.message || templateError)
+      }
+    } else {
+      console.warn(`⚠️ Cannot send order status update email - no email found in user or shipping address`)
+      console.warn(`   user object:`, order.user)
+      console.warn(`   shippingAddress:`, order.shippingAddress)
+    }
 
     res.json({
       success: true,

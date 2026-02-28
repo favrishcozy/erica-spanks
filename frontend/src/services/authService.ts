@@ -86,6 +86,12 @@ class AuthService {
     }
   }
 
+  clearAuth(): void {
+    this.token = null
+    this.user = null
+    this.clearAuthFromStorage()
+  }
+
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const response = await authAPI.login(credentials)
@@ -205,11 +211,35 @@ class AuthService {
   }
 
   // Update user data in storage (after profile updates)
-  updateUser(user: User): void {
+  updateUser(user: User | null): void {
     this.user = user
     if (typeof window !== 'undefined') {
       localStorage.setItem('userData', JSON.stringify(user))
     }
+  }
+
+  // Save address to user's profile
+  async saveAddress(addressData: any): Promise<User | null> {
+    try {
+      const response = await authAPI.saveAddress(addressData)
+      if (response.success && response.data) {
+        this.user = response.data
+        this.updateUser(this.user)
+        return this.user
+      }
+      return null
+    } catch (error) {
+      console.error('Save address error:', error)
+      throw error
+    }
+  }
+
+  // Get user's default address
+  getDefaultAddress(): any {
+    if (!this.user?.addresses || this.user.addresses.length === 0) {
+      return null
+    }
+    return this.user.addresses.find(addr => addr.isDefault) || this.user.addresses[0]
   }
 }
 

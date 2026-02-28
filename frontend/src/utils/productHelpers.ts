@@ -92,6 +92,56 @@ export const getMainImage = (product: Product): string => {
   return '/placeholder-product.svg'
 }
 
+/**
+ * Get the best available product image based on variation stock status
+ * If the first image corresponds to an out-of-stock variation (e.g., a color),
+ * return the image of the first in-stock variation instead
+ */
+export const getBestAvailableImage = (product: any): string => {
+  // If no variations, return main image
+  if (!product.variations || product.variations.length === 0) {
+    return getMainImage(product)
+  }
+
+  // Get the main/primary image to check its color
+  const mainImageUrl = getMainImage(product)
+  
+  // Try to find the first variation with stock and use its image
+  const inStockVariation = product.variations.find((v: any) => {
+    const quantity = v.inventory?.quantity || 0
+    return quantity > 0
+  })
+
+  // If we found an in-stock variation, prefer its image
+  if (inStockVariation && inStockVariation.images && inStockVariation.images.length > 0) {
+    const variationImageUrl = extractImageUrl(inStockVariation.images[0])
+    if (variationImageUrl) {
+      return variationImageUrl
+    }
+  }
+
+  // Fallback to main image
+  return mainImageUrl
+}
+
+/**
+ * Get the best initial color to display for a product
+ * Prefers the first in-stock color if available
+ */
+export const getBestInitialColor = (product: any): string => {
+  if (!product.variations || product.variations.length === 0) {
+    return ''
+  }
+
+  // Try to find the first in-stock variation
+  const inStockVariation = product.variations.find((v: any) => {
+    const quantity = v.inventory?.quantity || 0
+    return quantity > 0
+  })
+
+  return inStockVariation?.color || ''
+}
+
 export const calculateDiscount = (price: number, originalPrice?: number): number => {
   if (!originalPrice || originalPrice <= price) return 0
   return Math.round(((originalPrice - price) / originalPrice) * 100)

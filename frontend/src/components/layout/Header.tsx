@@ -454,7 +454,7 @@ const Header: React.FC = () => {
       { path: '/products/trending', label: 'Trending Now' },
       { path: '/products/best-sellers', label: 'Best Sellers' },
     ],
-    'CLOTHING': [
+    'YOUR WARDROBE': [
       { path: '/products/dresses', label: 'Dresses' },
       { path: '/products/tops', label: 'Tops & Blouses' },
       { path: '/products/bottoms', label: 'Bottoms' },
@@ -522,12 +522,6 @@ const Header: React.FC = () => {
     setOpenDropdown(prev => prev === key ? null : key)
   }
   
-  const mainNavItems = [
-    { path: '/products/new-in', label: 'New In' },
-    { path: '/contact', label: 'Contact' },
-    { path: '/about', label: 'About' },
-  ]
-  
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -561,15 +555,12 @@ const Header: React.FC = () => {
           </div>
           
           <Nav ref={dropdownRef}>
-            {mainNavItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                $isActive={location.pathname === item.path}
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            <NavLink
+              to="/products/new-in"
+              $isActive={location.pathname === '/products/new-in'}
+            >
+              New In
+            </NavLink>
 
             <DropdownWrapper>
               <DropdownButton
@@ -577,7 +568,7 @@ const Header: React.FC = () => {
                 aria-expanded={openDropdown === 'clothing'}
                 $isActive={openDropdown === 'clothing'}
               >
-                Clothing
+                Your Wardrobe
                 <ChevronDown size={14} />
               </DropdownButton>
               <DropdownMenu $open={openDropdown === 'clothing'}>
@@ -592,7 +583,7 @@ const Header: React.FC = () => {
                     </DropdownItem>
                   ))
                 ) : (
-                  Object.entries(navCategories['CLOTHING']).map(([k, v]: any, idx) => (
+                  Object.entries(navCategories['YOUR WARDROBE']).map(([k, v]: any, idx) => (
                     <DropdownItem key={idx} to={`/products?category=${encodeURIComponent(v.path.split('/').pop())}`} onClick={() => setOpenDropdown(null)}>
                       {v.label}
                     </DropdownItem>
@@ -630,6 +621,20 @@ const Header: React.FC = () => {
                 )}
               </DropdownMenu>
             </DropdownWrapper>
+
+            <NavLink
+              to="/about"
+              $isActive={location.pathname === '/about'}
+            >
+              About
+            </NavLink>
+
+            <NavLink
+              to="/contact"
+              $isActive={location.pathname === '/contact'}
+            >
+              Contact
+            </NavLink>
           </Nav>
           
           <Actions>
@@ -644,10 +649,6 @@ const Header: React.FC = () => {
                 />
               </form>
             </SearchContainer>
-
-            <MobileSearchButton onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}>
-              <Search size={16} />
-            </MobileSearchButton>
 
             {user?.role === 'admin' && (
               <IconButton as={Link} to="/admin/dashboard" title="Admin Panel">
@@ -739,39 +740,73 @@ const Header: React.FC = () => {
               </MobileSearchSubmitButton>
             </MobileSearchForm>
           </MobileSearchContainer>
-          
-          {Object.entries(navCategories).map(([categoryName, items]) => (
-            <CategorySection key={categoryName}>
-              <CategoryTitle>{categoryName}</CategoryTitle>
-              {items.map((item) => {
-                // Convert hardcoded paths to query parameters
-                let toPath = item.path
-                if (item.path.startsWith('/products/')) {
-                  const pathPart = item.path.split('/').pop()
-                  if (pathPart) {
-                    if (categoryName === 'CLOTHING') {
-                      toPath = `/products?category=${encodeURIComponent(pathPart)}`
-                    } else if (categoryName === 'OCCASIONS') {
-                      toPath = `/products?occasion=${encodeURIComponent(pathPart)}`
-                    }
-                  }
-                }
-                
-                return (
-                  <MobileNavLink
-                    key={item.path}
-                    to={toPath}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.label}
-                  </MobileNavLink>
-                )
-              })}
-            </CategorySection>
-          ))}
-          
+
+          {/* New In */}
           <CategorySection>
-            <CategoryTitle>MORE</CategoryTitle>
+            <MobileNavLink
+              to="/products/new-in"
+              onClick={() => setIsMenuOpen(false)}
+              style={{ borderBottom: 'none', paddingTop: 0 }}
+            >
+              New In
+            </MobileNavLink>
+          </CategorySection>
+
+          {/* Your Wardrobe */}
+          <CategorySection>
+            <CategoryTitle>Your Wardrobe</CategoryTitle>
+            {primaryCats.length > 0 ? (
+              primaryCats.map((c: any) => (
+                <MobileNavLink
+                  key={c._id}
+                  to={`/products?category=${encodeURIComponent(c.slug)}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {c.name}
+                </MobileNavLink>
+              ))
+            ) : (
+              navCategories['YOUR WARDROBE'].map((item) => (
+                <MobileNavLink
+                  key={item.path}
+                  to={`/products?category=${encodeURIComponent(item.path.split('/').pop())}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </MobileNavLink>
+              ))
+            )}
+          </CategorySection>
+
+          {/* Occasions */}
+          <CategorySection>
+            <CategoryTitle>Occasions</CategoryTitle>
+            {occasionCats.length > 0 ? (
+              occasionCats.map((c: any) => (
+                <MobileNavLink
+                  key={c._id}
+                  to={`/products?occasion=${encodeURIComponent(c.slug)}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {c.name}
+                </MobileNavLink>
+              ))
+            ) : (
+              navCategories['OCCASIONS'].map((item) => (
+                <MobileNavLink
+                  key={item.path}
+                  to={`/products?occasion=${encodeURIComponent(item.path.split('/').pop())}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </MobileNavLink>
+              ))
+            )}
+          </CategorySection>
+
+          {/* About and Contact */}
+          <CategorySection>
+            <CategoryTitle>More</CategoryTitle>
             {user?.role === 'admin' && (
               <MobileNavLink to="/admin/dashboard" onClick={() => setIsMenuOpen(false)}>
                 Admin Panel

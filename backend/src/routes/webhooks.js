@@ -17,10 +17,10 @@ router.post('/paystack', async (req, res) => {
     // Get signature from headers
     const signature = req.headers['x-paystack-signature']
     
-    console.log('🔔 Webhook received from Paystack')
+    console.log(' Webhook received from Paystack')
 
     if (!signature) {
-      console.warn('⚠️ Missing webhook signature header')
+      console.warn('Missing webhook signature header')
       return res.status(401).json({
         success: false,
         error: 'Missing webhook signature'
@@ -29,7 +29,7 @@ router.post('/paystack', async (req, res) => {
 
       // Verify signature using raw body (important for HMAC verification)
       const payloadString = req.rawBody || JSON.stringify(req.body)
-      console.log('📝 Payload for verification:', payloadString)
+      console.log(' Payload for verification:', payloadString)
     
       const isValidSignature = paymentService.verifyWebhookSignature(
         signature,
@@ -159,13 +159,13 @@ router.post('/paystack', async (req, res) => {
           const reconciliationResult = await stockService.reconcileStockForOrder(orderId)
           
           if (!reconciliationResult.success) {
-            console.error(`❌ Failed to reconcile stock for order ${orderId}:`, reconciliationResult.error)
+            console.error(`Failed to reconcile stock for order ${orderId}:`, reconciliationResult.error)
           } else {
-            console.log(`✅ Stock reconciled for failed order ${orderId}`)
+            console.log(`Stock reconciled for failed order ${orderId}`)
           }
           
           await order.save()
-          console.log(`❌ Order ${orderId} payment failed via webhook`)
+          console.log(` Order ${orderId} payment failed via webhook`)
         }
       }
     }

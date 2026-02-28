@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { productAPI } from '../services/api'
 import { formatPrice } from '../utils/currency'
+import { getBestInitialColor } from '../utils/productHelpers'
 
 // Types
 interface Product {
@@ -891,8 +892,11 @@ const ProductDetail: React.FC = () => {
         if (response.success) {
           setProduct(response.data)
           
-          // Set default selections
-          // Do NOT auto-select color/size: require explicit user selection
+          // Auto-select the best available color (first in-stock color)
+          const bestColor = getBestInitialColor(response.data)
+          if (bestColor) {
+            setSelectedColor(bestColor)
+          }
         } else {
           setError(response.error || 'Failed to load product')
         }
@@ -1277,21 +1281,6 @@ const ProductDetail: React.FC = () => {
               {inWishlist ? 'Saved' : 'Save'}
             </AddToWishlistButton>
           </ActionButtons>
-          
-          <ProductFeatures>
-            <FeatureItem>
-              <Truck size={20} />
-              <span>Free shipping on orders over ₦100,000</span>
-            </FeatureItem>
-            <FeatureItem>
-              <RotateCcw size={20} />
-              <span>30-day easy returns</span>
-            </FeatureItem>
-            <FeatureItem>
-              <Shield size={20} />
-              <span>1-year warranty</span>
-            </FeatureItem>
-          </ProductFeatures>
         </InfoSection>
       </MainContent>
       

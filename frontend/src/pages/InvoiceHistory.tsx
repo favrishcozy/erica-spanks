@@ -570,6 +570,10 @@ const InvoiceHistory: React.FC = () => {
                         ) : null}
                       </BreakdownGrid>
 
+                      <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                        (VAT included)
+                      </div>
+
                       <TotalAmount>
                         <span>Total Amount Due</span>
                         <span>{formatCurrency(invoice.amount)}</span>

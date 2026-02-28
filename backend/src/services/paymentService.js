@@ -21,8 +21,17 @@ export const initializePayment = async (email, amount, metadata = {}) => {
     console.log('🔄 Initializing Paystack payment for:', { email, amount, metadata })
     
     // Build callback URL - redirect back to frontend after payment
-    const frontendUrl = process.env.FRONTEND_URL || process.env.VITE_API_URL || 'http://localhost:5173'
+    // Priority: FRONTEND_URLS (can be comma-separated) -> FRONTEND_URL -> default
+    let frontendUrl = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || 'http://localhost:5173'
+    
+    // If FRONTEND_URLS is comma-separated, take the first one
+    if (frontendUrl && frontendUrl.includes(',')) {
+      frontendUrl = frontendUrl.split(',')[0].trim()
+    }
+    
     const callbackUrl = `${frontendUrl}/order/verify`
+    
+    console.log('Paystack callback URL:', callbackUrl)
     
     const response = await paystackAPI.post('/transaction/initialize', {
       email,

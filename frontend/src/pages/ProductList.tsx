@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { productAPI } from '../services/api'
 import { Product } from '../types/Product'
 import { formatPrice } from '../utils/currency'
+import { getBestAvailableImage } from '../utils/productHelpers'
 
 // Types (keeping your existing types, they're compatible)
 interface LocalProduct {
@@ -971,13 +972,14 @@ const ProductList: React.FC = () => {
                 const variation = product.variations[0]
                 const discount = getDiscountPercentage(variation.price, variation.compareAtPrice)
                 const inWishlist = isInWishlist(product._id)
+                const bestImage = getBestAvailableImage(product)
                 
                 return (
                   <Link key={product._id} to={`/product/${product._id || product.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                     <ProductCard view={view}>
                     <ProductImage view={view}>
                       <img
-                        src={variation.images[0]?.url || '/placeholder.jpg'}
+                        src={bestImage || '/placeholder.jpg'}
                         alt={product.name}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI0Y1RTZEMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOHB4IiBmaWxsPSIjNjY2NjY2Ij5Qcm9kdWN0IEltYWdlPC90ZXh0Pjwvc3ZnPg=='

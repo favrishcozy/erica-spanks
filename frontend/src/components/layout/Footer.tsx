@@ -1,7 +1,7 @@
 import React from 'react'
 import styled from 'styled-components'
 import { Link } from 'react-router-dom'
-import { Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react'
+import { Instagram, Mail, Phone, MapPin } from 'lucide-react'
 
 const FooterContainer = styled.footer`
   background: ${({ theme }) => theme.colors.black};
@@ -10,7 +10,7 @@ const FooterContainer = styled.footer`
   margin-top: auto;
   
   @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    display: none; // Hidden on mobile, replaced by MobileNav
+    padding: ${({ theme }) => theme.spacing['2xl']} 0 ${({ theme }) => theme.spacing['4xl']};
   }
 `
 
@@ -25,6 +25,11 @@ const FooterContent = styled.div`
   @media (max-width: ${({ theme }) => theme.breakpoints.desktop}) {
     grid-template-columns: repeat(2, 1fr);
     gap: ${({ theme }) => theme.spacing.lg};
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.spacing.md};
   }
 `
 
@@ -168,7 +173,6 @@ const Footer: React.FC = () => {
             <li><FooterLink to="/products/tops">Tops</FooterLink></li>
             <li><FooterLink to="/products/bottoms">Bottoms</FooterLink></li>
             <li><FooterLink to="/products/sets">Sets</FooterLink></li>
-            <li><FooterLink to="/products/sale">Sale</FooterLink></li>
           </FooterLinks>
         </FooterSection>
         
@@ -177,9 +181,7 @@ const Footer: React.FC = () => {
           <FooterLinks>
             <li><FooterLink to="/contact">Contact Us</FooterLink></li>
             <li><FooterLink to="/shipping">Shipping Info</FooterLink></li>
-            <li><FooterLink to="/returns">Returns & Exchanges</FooterLink></li>
             <li><FooterLink to="/size-guide">Size Guide</FooterLink></li>
-            <li><FooterLink to="/faq">FAQ</FooterLink></li>
           </FooterLinks>
         </FooterSection>
         
@@ -187,7 +189,6 @@ const Footer: React.FC = () => {
           <h4>Company</h4>
           <FooterLinks>
             <li><FooterLink to="/about">About Us</FooterLink></li>
-            <li><FooterLink to="/careers">Careers</FooterLink></li>
             <li><FooterLink to="/privacy">Privacy Policy</FooterLink></li>
             <li><FooterLink to="/terms">Terms of Service</FooterLink></li>
           </FooterLinks>
@@ -197,7 +198,7 @@ const Footer: React.FC = () => {
           <h4>Connect</h4>
           <ContactInfo>
             <Mail size={16} />
-            <span>hello@ericaspanks.com</span>
+            <span>info@ericaspanks.com</span>
           </ContactInfo>
           <ContactInfo>
             <Phone size={16} />
@@ -220,11 +221,13 @@ const Footer: React.FC = () => {
             <SocialLink href="https://instagram.com/ericaspanks" target="_blank" rel="noopener noreferrer">
               <Instagram size={20} />
             </SocialLink>
-            <SocialLink href="https://facebook.com/ericaspanks" target="_blank" rel="noopener noreferrer">
-              <Facebook size={20} />
+            <SocialLink href="https://tiktok.com/@ericaspanks" target="_blank" rel="noopener noreferrer">
+              <img src="/Real TikTok Logo.png" alt="TikTok" style={{ width: 20, height: 20 }} />
             </SocialLink>
-            <SocialLink href="https://twitter.com/ericaspanks" target="_blank" rel="noopener noreferrer">
-              <Twitter size={20} />
+            <SocialLink href="https://x.com/ericaspanks" target="_blank" rel="noopener noreferrer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.627l-5.1-6.694-5.867 6.694h-3.306l7.73-8.835L.42 2.25h6.802l4.632 6.142L17.766 2.25h.478zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
             </SocialLink>
           </SocialLinks>
           

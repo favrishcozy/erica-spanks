@@ -56,6 +56,11 @@ const shippingAddressSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
   company: {
     type: String,
     trim: true
@@ -446,13 +451,8 @@ orderSchema.pre('save', function(next) {
     this.orderNumber = `ES-${timestamp.slice(-6)}${random}`
   }
   
-  // Add status to history if status changed
-  if (this.isModified('status') && !this.isNew) {
-    this.statusHistory.push({
-      status: this.status,
-      timestamp: new Date()
-    })
-  }
+  // Note: Status history is now handled by the route handler to ensure updatedBy field
+  // This avoids duplicate entries and ensures proper tracking
   
   next()
 })

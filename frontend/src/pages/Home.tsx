@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { ArrowRight, Mail, RefreshCw } from 'lucide-react'
 import ProductCard from '../components/product/ProductCard'
+import Carousel from '../components/ui/Carousel'
 import { productAPI, contactAPI } from '../services/api'
 import { Product, normalizeProduct, validateProduct } from '../utils/productHelpers'
 
@@ -185,6 +186,18 @@ const CollectionsGrid = styled.div`
   @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
     grid-template-columns: repeat(4, 1fr);
   }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    display: none;
+  }
+`
+
+const CollectionsCarouselContainer = styled.div`
+  display: none;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    display: block;
+  }
 `
 
 const CollectionCard = styled(Link)`
@@ -282,6 +295,18 @@ const LookbookGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: ${({ theme }) => theme.spacing.xl};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    display: none;
+  }
+`
+
+const LookbookCarouselContainer = styled.div`
+  display: none;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    display: block;
+  }
 `
 
 const LookbookItem = styled.div`
@@ -824,6 +849,54 @@ const Home: React.FC = () => {
             </CollectionOverlay>
           </CollectionCard>
         </CollectionsGrid>
+        
+        <CollectionsCarouselContainer>
+          <Carousel
+            items={[
+              <CollectionCard key="new" to="/products?sort=newest">
+                <CollectionImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501832/erica-spanks/undefined/Dress_waw3fm.jpg" 
+                  alt="New Arrivals" 
+                />
+                <CollectionOverlay>
+                  <CollectionTitle>New Arrivals</CollectionTitle>
+                  <p>Fresh styles that define confidence</p>
+                </CollectionOverlay>
+              </CollectionCard>,
+              <CollectionCard key="popular" to="/products?sort=popular">
+                <CollectionImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501837/erica-spanks/undefined/Top_onrpuu.jpg" 
+                  alt="Best Sellers" 
+                />
+                <CollectionOverlay>
+                  <CollectionTitle>Best Sellers</CollectionTitle>
+                  <p>Customer favorites that never disappoint</p>
+                </CollectionOverlay>
+              </CollectionCard>,
+              <CollectionCard key="sets" to="/products?category=sets">
+                <CollectionImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece_lydbu8.jpg" 
+                  alt="Sets" 
+                />
+                <CollectionOverlay>
+                  <CollectionTitle>Sets</CollectionTitle>
+                  <p>Perfectly coordinated outfits</p>
+                </CollectionOverlay>
+              </CollectionCard>,
+              <CollectionCard key="dresses" to="/products?category=dresses">
+                <CollectionImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501834/erica-spanks/undefined/Dress2_abmlyn.jpg" 
+                  alt="Dresses" 
+                />
+                <CollectionOverlay>
+                  <CollectionTitle>Dresses</CollectionTitle>
+                  <p>Elegant styles for every occasion</p>
+                </CollectionOverlay>
+              </CollectionCard>
+            ]}
+            enableSwipe={true}
+          />
+        </CollectionsCarouselContainer>
       </CollectionsSection>
       
       {/* Runway Section */}
@@ -880,6 +953,41 @@ const Home: React.FC = () => {
             </LookbookCaption>
           </LookbookItem>
         </LookbookGrid>
+        
+        <LookbookCarouselContainer>
+          <Carousel
+            items={[
+              <LookbookItem key="casual">
+                <LookbookImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece2_ekz4s7.jpg" 
+                  alt="Casual Elegance" 
+                />
+                <LookbookCaption>
+                  "Embrace effortless style that transitions seamlessly from day to night."
+                </LookbookCaption>
+              </LookbookItem>,
+              <LookbookItem key="modern">
+                <LookbookImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501853/erica-spanks/undefined/Two-piece3_ii4cvw.jpg" 
+                  alt="Modern Sophistication" 
+                />
+                <LookbookCaption>
+                  "Redefine your confidence with pieces that speak to your unique journey."
+                </LookbookCaption>
+              </LookbookItem>,
+              <LookbookItem key="comfort">
+                <LookbookImage 
+                  src="https://res.cloudinary.com/dtnyez4fk/image/upload/v1761501863/erica-spanks/undefined/Lounge_apskzs.jpg" 
+                  alt="Comfort First" 
+                />
+                <LookbookCaption>
+                  "Luxury isn't just about appearance—it's about how you feel in every moment."
+                </LookbookCaption>
+              </LookbookItem>
+            ]}
+            enableSwipe={true}
+          />
+        </LookbookCarouselContainer>
       </LookbookSection>
       
       {/* Featured Products */}

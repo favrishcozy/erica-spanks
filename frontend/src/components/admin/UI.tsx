@@ -1,12 +1,13 @@
 import styled from 'styled-components'
 
 export const DashboardHeader = styled.div`
-  background: linear-gradient(135deg, #C9A876 0%, #1a1a1a 100%);
+  background: #1a1a1a;
+  border-bottom: 3px solid #C9A876;
   color: white;
   padding: 20px 16px;
   margin: -40px -24px 32px -24px;
   border-radius: 0 0 20px 20px;
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -13,16 +13,26 @@ import { areaToZone, deliveryMatrix, pickupLocations } from '../data/deliveryZon
 export const getZoneFromArea = (deliveryArea) => {
   if (!deliveryArea) throw new Error('Delivery area is required')
 
-  const normalizedArea = deliveryArea.toLowerCase().trim()
+  const normalizedArea = deliveryArea.trim()
 
-  // Direct zone mapping
+  // Direct zone mapping with exact match
   if (areaToZone[normalizedArea]) {
     return areaToZone[normalizedArea]
   }
 
-  // Try partial matches
+  // Try case-insensitive match
+  const lowerNormalized = normalizedArea.toLowerCase()
+  const foundEntry = Object.entries(areaToZone).find(([area]) =>
+    area.toLowerCase() === lowerNormalized
+  )
+
+  if (foundEntry) {
+    return foundEntry[1]
+  }
+
+  // Try partial matches (case-insensitive)
   const foundZone = Object.entries(areaToZone).find(([area]) =>
-    area.includes(normalizedArea) || normalizedArea.includes(area)
+    area.toLowerCase().includes(lowerNormalized) || lowerNormalized.includes(area.toLowerCase())
   )
 
   if (foundZone) {
@@ -40,7 +50,7 @@ export const getZoneFromArea = (deliveryArea) => {
 export const isPickupArea = (deliveryArea) => {
   if (!deliveryArea) return false
   const normalizedArea = deliveryArea.toLowerCase().trim()
-  return pickupLocations.includes(normalizedArea)
+  return pickupLocations.some(location => location.toLowerCase() === normalizedArea)
 }
 
 /**

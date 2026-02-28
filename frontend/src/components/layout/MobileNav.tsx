@@ -122,13 +122,6 @@ const MobileNav: React.FC = () => {
       label: 'Shop',
     },
     {
-      path: '/wishlist',
-      icon: Heart,
-      label: 'Wishlist',
-      badge: user ? wishlistCount : 0,
-      requiresAuth: true,
-    },
-    {
       path: '/cart',
       icon: ShoppingBag,
       label: 'Bag',

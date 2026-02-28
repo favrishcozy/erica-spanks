@@ -370,6 +370,11 @@ export const authAPI = {
     return response.data;
   },
 
+  saveAddress: async (addressData: any) => {
+    const response = await api.post('/auth/addresses', addressData);
+    return response.data;
+  },
+
   refreshToken: async () => {
     const response = await api.post('/auth/refresh');
     return response.data;

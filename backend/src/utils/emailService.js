@@ -1,14 +1,41 @@
 import { Resend } from 'resend'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Email templates (UNCHANGED — keep yours exactly as they are)
+// Get logo URL for emails - uses Cloudinary CDN URL
+const getLogoUrl = () => {
+  // Use Cloudinary CDN URL format for the logo
+  // Format: https://res.cloudinary.com/{cloud_name}/image/upload/{public_id}
+  // Fallback to domain URL if Cloudinary not configured
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+  
+  if (cloudName) {
+    // Construct Cloudinary URL - assuming logo is uploaded as "ericaspanks/EricaLogoWhite"
+    const logoUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_150,f_auto/ericaspanks/EricaLogoWhite`
+    console.log('[LOGO] Using Cloudinary logo URL:', logoUrl)
+    return logoUrl
+  } else {
+    // Fallback to domain URL
+    const fallbackUrl = process.env.LOGO_URL || 'https://ericaspanks.com/EricaLogoWhite.png'
+    console.log('[LOGO] Using fallback logo URL:', fallbackUrl)
+    return fallbackUrl
+  }
+}
+
+const LOGO_URL = getLogoUrl()
+
 export const emailTemplates = {
   orderConfirmation: (order) => ({
     subject: `Order Confirmation #${order.orderId}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-        <div style="background: #FF1493; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">          <img src="https://ericaspanks.com/EricaLogoWhite.png" alt="Erica Spanks" style="max-height: 60px; margin-bottom: 15px;">          <h1 style="margin: 0; font-size: 28px;">Thank You for Your Order!</h1>
+        <div style="background: #C9A876; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="${LOGO_URL}" alt="Erica Spanks" style="max-height: 60px; margin-bottom: 15px;">
+          <h1 style="margin: 0; font-size: 28px;">Thank You for Your Order!</h1>
         </div>
 
         <div style="padding: 30px; border: 1px solid #eee; border-top: none;">
@@ -49,8 +76,9 @@ export const emailTemplates = {
 
           <div style="background: #f0f0f0; padding: 15px; border-radius: 6px; margin: 20px 0;">
             <p style="margin: 5px 0;"><strong>Subtotal:</strong> N${(order.pricing?.subtotal || 0).toLocaleString()}</p>
+            <p style="margin: 5px 0;"><strong>Shipping:</strong> N${(order.pricing?.shippingCost || order.pricing?.shippingFee || 0).toLocaleString()}</p>
             ${order.pricing?.discount ? `<p style="margin: 5px 0;"><strong>Discount:</strong> -N${order.pricing.discount.toLocaleString()}</p>` : ''}
-            <p style="margin: 5px 0;"><strong>Shipping:</strong> N${(order.pricing?.shippingFee || 0).toLocaleString()}</p>
+            <p style="margin: 5px 0;"><strong>Including VAT (7.5%)</strong></p>
             <p style="margin: 5px 0; font-size: 18px; color: #C9A876;"><strong>Total: N${(order.pricing?.total || 0).toLocaleString()}</strong></p>
           </div>
 
@@ -83,7 +111,7 @@ export const emailTemplates = {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="background: #C9A876; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <img src="https://ericaspanks.com/EricaLogoWhite.png" alt="Erica Spanks" style="max-height: 60px; margin-bottom: 15px;">
+          <img src="${LOGO_URL}" alt="Erica Spanks" style="max-height: 60px; margin-bottom: 15px;">
           <h1 style="margin: 0; font-size: 24px;">Welcome to Our Newsletter!</h1>
         </div>
 
@@ -121,7 +149,7 @@ export const emailTemplates = {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="background: #C9A876; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <img src="https://ericaspanks.com/EricaLogoWhite.png" alt="Erica Spanks" style="max-height: 60px; margin-bottom: 15px;">
+          <img src="${LOGO_URL}" alt="Erica Spanks" style="max-height: 60px; margin-bottom: 15px;">
           <h1 style="margin: 0; font-size: 24px;">Order Status Update</h1>
         </div>
 
@@ -152,25 +180,48 @@ export const emailTemplates = {
   })
 }
 
-// Send email helper (THIS is the only part that changes)
+// Send email helper 
 export const sendEmail = async (to, template) => {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured')
+    }
+    
+    if (!to) {
+      throw new Error('Recipient email address (to) is required')
+    }
+    
+    if (!template || !template.subject || !template.html) {
+      throw new Error('Template with subject and html is required')
+    }
+
     console.log(`[EMAIL] Sending to ${to} via Resend`)
     console.log(`[EMAIL] Subject: ${template.subject}`)
+    console.log(`[EMAIL] From: ${process.env.EMAIL_FROM}`)
 
-    const { data, error } = await resend.emails.send({
+    const response = await resend.emails.send({
       from: process.env.EMAIL_FROM,
-      to,
+      to: to,
       subject: template.subject,
       html: template.html
     })
 
-    if (error) throw error
+    const { data, error } = response
 
-    console.log(`[EMAIL] ✅ Email sent successfully. ID: ${data?.id}`)
+    if (error) {
+      console.error(`[EMAIL] ❌ Resend API returned error:`, error)
+      throw new Error(`Resend API error: ${JSON.stringify(error)}`)
+    }
+
+    if (!data) {
+      throw new Error('No data returned from Resend API')
+    }
+
+    console.log(`[EMAIL] ✅ Email sent successfully. ID: ${data.id}`)
     return true
   } catch (error) {
-    console.error(`[EMAIL] ❌ Failed to send email to ${to}:`, error)
+    console.error(`[EMAIL] ❌ Failed to send email to ${to}:`, error.message || error)
+    console.error(`[EMAIL] Full error:`, error)
     return false
   }
 }

@@ -2,12 +2,32 @@ import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useNavigate, useParams } from 'react-router-dom'
 import api, { invoiceAPI } from '../services/api'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Home } from 'lucide-react'
 
 const Container = styled.div`
   max-width: 900px;
   margin: 96px auto;
   padding: 2rem;
+`
+
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.primaryDark};
+    transform: translateX(-2px);
+  }
 `
 
 const Title = styled.h1`
@@ -117,6 +137,11 @@ const OrderSuccess: React.FC = () => {
 
   return (
     <Container>
+      <BackButton onClick={() => navigate('/')}>
+        <Home size={18} />
+        Back to Home
+      </BackButton>
+
       <Title>Payment Successful</Title>
 
       {loading && (
