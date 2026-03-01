@@ -355,48 +355,7 @@ const LoadingSpinner = styled.div`
   margin: 0 auto;
 `
 
-const DeliveryMethodContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${({ theme }) => theme.spacing.lg};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`
-
-const DeliveryMethodOption = styled.label<{ selected: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.md};
-  padding: ${({ theme }) => theme.spacing.lg};
-  border: 2px solid ${({ theme, selected }) => selected ? theme.colors.primary : theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: ${({ theme, selected }) => selected ? theme.colors.primary + '05' : 'white'};
-
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
-    transform: translateY(-2px);
-  }
-
-  input {
-    display: none;
-  }
-`
-
-const MethodName = styled.span`
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: ${({ theme }) => theme.colors.primaryDark};
-`
-
-const MethodDescription = styled.span`
-  font-size: 0.9rem;
-  color: ${({ theme }) => theme.colors.darkGray};
-`
+// Delivery method removed - always home delivery
 
 const AreaSelect = styled.select`
   width: 100%;
@@ -554,7 +513,6 @@ const Checkout: React.FC = () => {
     postalCode: '',
     country: 'Nigeria',
     paymentMethod: 'paystack',
-    deliveryMethod: 'delivery',
     deliveryArea: ''
   })
 
@@ -696,7 +654,6 @@ const Checkout: React.FC = () => {
       postalCode: '',
       country: 'Nigeria',
       paymentMethod: 'paystack',
-      deliveryMethod: 'delivery',
       deliveryArea: ''
     })
     localStorage.removeItem(SHIPPING_STORAGE_KEY)
@@ -766,23 +723,16 @@ const Checkout: React.FC = () => {
     }
   }
 
-  // Calculate fee when area or delivery method changes
+  // Calculate fee when area changes
   useEffect(() => {
-    if (formData.deliveryMethod === 'delivery') {
-      if (!formData.deliveryArea) {
-        setShippingFee(0)
-        setFeeStatus('idle')
-        return
-      }
-
-      calculateDeliveryFee()
+    if (!formData.deliveryArea) {
+      setShippingFee(0)
+      setFeeStatus('idle')
       return
     }
 
-    // If deliveryMethod is not 'delivery' (shouldn't happen since pickup removed), reset
-    setShippingFee(0)
-    setFeeStatus('idle')
-  }, [formData.deliveryArea, formData.deliveryMethod])
+    calculateDeliveryFee()
+  }, [formData.deliveryArea])
 
   const calculateDeliveryFee = async () => {
     try {
@@ -888,8 +838,7 @@ const Checkout: React.FC = () => {
     if (!formData.city.trim()) newErrors.city = 'City is required'
     if (!formData.state.trim()) newErrors.state = 'State is required'
     if (!formData.paymentMethod) newErrors.paymentMethod = 'Payment method is required'
-    if (!formData.deliveryMethod) newErrors.deliveryMethod = 'Delivery method is required'
-    if (formData.deliveryMethod === 'delivery' && !formData.deliveryArea) {
+    if (!formData.deliveryArea) {
       newErrors.deliveryArea = 'Delivery area is required'
     }
     if (errors.deliveryArea && formData.deliveryArea) {
@@ -939,7 +888,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           price: item.price
         })),
         paymentMethod: formData.paymentMethod,
-        deliveryMethod: formData.deliveryMethod,
+        deliveryMethod: 'delivery',
         deliveryArea: formData.deliveryArea || null,
         deliveryFee: shippingFee
       }
@@ -1155,6 +1104,35 @@ const handleSubmit = async (e: React.FormEvent) => {
             {errors.address && <ErrorMessage>{errors.address}</ErrorMessage>}
           </FormGroup>
 
+          <FormGroup>
+            <Label>Delivery Area *</Label>
+            <AreaSelect
+              value={formData.deliveryArea}
+              onChange={(e) => handleInputChange('deliveryArea', e.target.value)}
+              disabled={Object.keys(zones).length === 0}
+              $hasError={!!errors.deliveryArea}
+            >
+              <option value="">-- Select your area --</option>
+              {availableAreas.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </AreaSelect>
+            {errors.deliveryArea && <ErrorMessage>{errors.deliveryArea}</ErrorMessage>}
+            {loadingFee && (
+              <FeeCalculationStatus status="loading">
+                <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                <span>Calculating delivery fee...</span>
+              </FeeCalculationStatus>
+            )}
+            {feeStatus === 'success' && formData.deliveryArea && !loadingFee && (
+              <FeeCalculationStatus status="success">
+                ✓ Delivery fee: ₦{shippingFee.toLocaleString()}
+              </FeeCalculationStatus>
+            )}
+          </FormGroup>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
             <FormGroup>
               <Label>City *</Label>
@@ -1197,62 +1175,6 @@ const handleSubmit = async (e: React.FormEvent) => {
               <option value="Nigeria">Nigeria</option>
             </Select>
           </FormGroup>
-        </FormSection>
-
-        <FormSection>
-          <SectionTitle>Delivery Method</SectionTitle>
-
-          <FormGroup>
-            <Label>Select Delivery Method *</Label>
-            <DeliveryMethodContainer>
-              <DeliveryMethodOption
-                selected={formData.deliveryMethod === 'delivery'}
-              >
-                <HiddenRadio
-                  type="radio"
-                  name="deliveryMethod"
-                  value="delivery"
-                  checked={formData.deliveryMethod === 'delivery'}
-                  onChange={(e) => handleInputChange('deliveryMethod', e.target.value)}
-                />
-                <MethodName>Home Delivery</MethodName>
-                <MethodDescription>Fast delivery to your address</MethodDescription>
-              </DeliveryMethodOption>
-
-            </DeliveryMethodContainer>
-            {errors.deliveryMethod && <ErrorMessage>{errors.deliveryMethod}</ErrorMessage>}
-          </FormGroup>
-
-          {formData.deliveryMethod === 'delivery' && (
-            <FormGroup>
-              <Label>Delivery Area *</Label>
-              <AreaSelect
-                value={formData.deliveryArea}
-                onChange={(e) => handleInputChange('deliveryArea', e.target.value)}
-                disabled={Object.keys(zones).length === 0}
-                $hasError={!!errors.deliveryArea}
-              >
-                <option value="">-- Select your area --</option>
-                {availableAreas.map((area) => (
-                  <option key={area} value={area}>
-                    {area}
-                  </option>
-                ))}
-              </AreaSelect>
-              {errors.deliveryArea && <ErrorMessage>{errors.deliveryArea}</ErrorMessage>}
-              {loadingFee && (
-                <FeeCalculationStatus status="loading">
-                  <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Calculating delivery fee...</span>
-                </FeeCalculationStatus>
-              )}
-              {feeStatus === 'success' && formData.deliveryArea && !loadingFee && (
-                <FeeCalculationStatus status="success">
-                  ✓ Delivery fee: ₦{shippingFee.toLocaleString()}
-                </FeeCalculationStatus>
-              )}
-            </FormGroup>
-          )}
         </FormSection>
         <FormSection>
           <SectionTitle>Payment Method</SectionTitle>

@@ -5,10 +5,10 @@ import User from './src/models/User.js'
 dotenv.config()
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || ''
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@erica.com'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'erica123'
-const ADMIN_FIRST = process.env.ADMIN_FIRST || 'Admin'
-const ADMIN_LAST = process.env.ADMIN_LAST || 'User'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'hello@ericaspanks.com'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '09027ES4581'
+const ADMIN_FIRST = process.env.ADMIN_FIRST || 'AYILE'
+const ADMIN_LAST = process.env.ADMIN_LAST || 'YEBOVI'
 
 if (!MONGODB_URI) {
   console.error('MONGODB_URI not set. Set it in your environment before running this script.')
