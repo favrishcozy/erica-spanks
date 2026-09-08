@@ -47,8 +47,24 @@ const PORT = process.env.PORT || 5000
 // FRONTEND_URLS can be a comma-separated list of allowed origins (e.g. https://app.example.com,http://localhost:5173)
 const getAllowedOrigins = () => {
   const env = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
-  if (!env) return ['http://localhost:5173'];
-  return env.split(',').map(u => u.trim()).filter(Boolean);
+  const configuredOrigins = env
+    ? env.split(',').map(u => u.trim()).filter(Boolean)
+    : ['http://localhost:5173'];
+
+  // Treat apex and www as a pair so a canonical-domain redirect cannot break CORS.
+  return [...new Set(configuredOrigins.flatMap((origin) => {
+    try {
+      const url = new URL(origin);
+      const alternateHostname = url.hostname.startsWith('www.')
+        ? url.hostname.slice(4)
+        : `www.${url.hostname}`;
+      const alternate = new URL(url.toString());
+      alternate.hostname = alternateHostname;
+      return [url.origin, alternate.origin];
+    } catch {
+      return [origin];
+    }
+  }))];
 }
 
 const corsOptions = {

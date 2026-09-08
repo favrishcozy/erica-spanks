@@ -166,6 +166,18 @@ npm start
 - See `.env.example` files for required variables
 - Never commit sensitive keys to version control
 
+For the production deployment, configure these values in the hosting providers:
+
+```env
+# Frontend (Vercel)
+VITE_API_URL=https://erica-spanks.onrender.com
+
+# Backend (Render)
+FRONTEND_URLS=https://ericaspanks.com,https://www.ericaspanks.com
+```
+
+The apex domain redirects to `www`, so both origins must remain in the backend CORS allowlist.
+
 ## 📈 Performance Optimization
 
 - Lazy loading for images and components

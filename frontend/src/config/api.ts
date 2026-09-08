@@ -1,19 +1,17 @@
 // src/config/api.ts
 
-// Get API base URL from environment or use default
 const getApiBaseUrl = (): string => {
-  // In development, check for .env.local first (local backend)
-  if (import.meta.env.DEV && import.meta.env.VITE_API_URL === 'http://localhost:5000') {
-    return import.meta.env.VITE_API_URL;
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '');
+
+  if (configuredUrl) {
+    return configuredUrl;
   }
-  
-  // Check for any Vite environment variable
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+
+  if (import.meta.env.DEV) {
+    return 'http://localhost:5000';
   }
-  
-  // Default fallback for development
-  return 'http://localhost:5000';
+
+  throw new Error('VITE_API_URL must be set for production builds.');
 };
 
 const API_BASE_URL = getApiBaseUrl();

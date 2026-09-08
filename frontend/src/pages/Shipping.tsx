@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { Truck, MapPin, Clock, DollarSign } from 'lucide-react'
-import axios from 'axios'
-import { API_BASE_URL } from '../config/environment'
+import api from '../services/api'
 
 const ShippingContainer = styled.div`
   background: ${({ theme }) => theme.colors.offWhite};
@@ -224,7 +223,7 @@ const Shipping: React.FC = () => {
   useEffect(() => {
     const loadZones = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/shipping/zones`)
+        const response = await api.get('/shipping/zones')
         if (response.data?.zones) {
           setZones(response.data.zones)
         }

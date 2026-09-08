@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import axios from 'axios'
-import { API_BASE_URL } from '../../config/environment'
+import api from '../../services/api'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { Search, ShoppingBag, User, Menu, X, Heart, ChevronDown, Settings } from 'lucide-react'
@@ -479,7 +478,7 @@ const Header: React.FC = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/categories`)
+        const res = await api.get('/categories')
         const cats = res.data?.data || []
         setAllCategories(cats)
       } catch (e) {
@@ -492,7 +491,7 @@ const Header: React.FC = () => {
   useEffect(() => {
     const fetchOccasions = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/occasions`)
+        const res = await api.get('/occasions')
         const occasions = res.data?.data || []
         setAllOccasions(occasions)
       } catch (e) {
