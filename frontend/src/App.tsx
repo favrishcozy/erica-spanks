@@ -41,6 +41,7 @@ import '@fontsource/montserrat/600.css';
 import '@fontsource/playfair-display/700.css';
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import Seo from './components/Seo'
 
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
       <GlobalStyles />
       <AuthProvider>
         <Router>
+          <Seo />
           <Layout>
             <Routes>
               <Route path="/" element={<Home />} />
